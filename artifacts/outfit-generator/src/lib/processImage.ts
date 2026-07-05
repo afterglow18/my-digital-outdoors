@@ -3,8 +3,13 @@
  * the subject on a square transparent-PNG canvas.
  *
  * Uses @imgly/background-removal (browser-side, no API key needed).
- * Model files are streamed from the jsDelivr CDN on first call
- * and cached in the browser thereafter.
+ * Model files are streamed from the jsDelivr CDN on first call and
+ * cached by the browser thereafter.
+ *
+ * NOTE: The library's resources.json ships empty, so the built-in
+ * progress callback never fires with total > 0.  Callers should drive
+ * their own progress UI (e.g. a simulated ramp) independently and treat
+ * onProgress here as a best-effort supplement only.
  */
 import { removeBackground } from "@imgly/background-removal";
 
@@ -13,35 +18,89 @@ const PUBLIC_PATH = `https://cdn.jsdelivr.net/npm/@imgly/background-removal@${CD
 
 export type ProgressCallback = (percent: number) => void;
 
+/** Wraps a promise with a hard timeout; rejects with TimeoutError on expiry. */
+export class TimeoutError extends Error {
+  constructor(ms: number) {
+    super(`Background removal timed out after ${ms / 1000}s`);
+    this.name = "TimeoutError";
+  }
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const id = setTimeout(() => reject(new TimeoutError(ms)), ms);
+    promise.then(
+      (v) => { clearTimeout(id); resolve(v); },
+      (e) => { clearTimeout(id); reject(e); },
+    );
+  });
+}
+
+/**
+ * Encode a File/Blob as a PNG via canvas (normalises camera JPEGs).
+ * Returns a transparent-friendly PNG Blob.
+ */
+export async function encodeToPng(input: File | Blob): Promise<Blob> {
+  const url = URL.createObjectURL(input);
+  try {
+    const img = new Image();
+    await new Promise<void>((res, rej) => {
+      img.onload = () => res();
+      img.onerror = rej;
+      img.src = url;
+    });
+    const cvs = document.createElement("canvas");
+    cvs.width  = img.naturalWidth;
+    cvs.height = img.naturalHeight;
+    cvs.getContext("2d")!.drawImage(img, 0, 0);
+    return await new Promise<Blob>((res, rej) =>
+      cvs.toBlob(
+        (b) => (b ? res(b) : rej(new Error("canvas.toBlob failed"))),
+        "image/png",
+      )
+    );
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+/**
+ * Full pipeline: bg-removal → crop → pad to square transparent PNG.
+ * Rejects with TimeoutError after `timeoutMs` (default 90 s).
+ */
 export async function processClothingImage(
   input: File | Blob,
-  onProgress?: ProgressCallback
+  onProgress?: ProgressCallback,
+  timeoutMs = 90_000,
 ): Promise<Blob> {
-  // Phase 1 – background removal (0-80%)
-  const bgFree = await removeBackground(input, {
-    publicPath: PUBLIC_PATH,
-    model: "isnet_quint8", // smallest/fastest quantised model
-    output: { format: "image/png", quality: 1 },
-    progress: (_key: string, current: number, total: number) => {
-      if (onProgress && total > 0) {
-        onProgress(Math.min(80, Math.round((current / total) * 80)));
-      }
-    },
-  });
+  const run = async () => {
+    // Phase 1 – background removal
+    const bgFree = await removeBackground(input, {
+      publicPath: PUBLIC_PATH,
+      model: "isnet_quint8",
+      output: { format: "image/png", quality: 1 },
+      // progress fires with total=0 due to empty resources.json —
+      // we call onProgress anyway so callers can use it as a pulse.
+      progress: (_key: string, current: number, total: number) => {
+        if (onProgress) {
+          onProgress(total > 0 ? Math.min(80, Math.round((current / total) * 80)) : -1);
+        }
+      },
+    });
 
-  onProgress?.(85);
+    onProgress?.(-1); // pulse: inference done, cropping next
 
-  // Phase 2 – crop to content bounds + pad to square (85-100%)
-  const result = await cropAndCenterPng(bgFree);
+    // Phase 2 – crop + pad to square
+    const result = await cropAndCenterPng(bgFree);
+    return result;
+  };
 
-  onProgress?.(100);
-  return result;
+  return withTimeout(run(), timeoutMs);
 }
 
 // ── Internal ──────────────────────────────────────────────────────────────────
 
 async function cropAndCenterPng(blob: Blob): Promise<Blob> {
-  // Decode the PNG
   const bitmap = await createImageBitmap(blob);
 
   const analysisCanvas = new OffscreenCanvas(bitmap.width, bitmap.height);
@@ -51,7 +110,6 @@ async function cropAndCenterPng(blob: Blob): Promise<Blob> {
   const imageData = ctx.getImageData(0, 0, bitmap.width, bitmap.height);
   const { data, width, height } = imageData;
 
-  // Find the tight bounding box of non-transparent pixels
   let minX = width, minY = height, maxX = 0, maxY = 0;
   let hasContent = false;
 
@@ -68,29 +126,22 @@ async function cropAndCenterPng(blob: Blob): Promise<Blob> {
     }
   }
 
-  if (!hasContent) return blob; // Nothing found — return original
+  if (!hasContent) return blob;
 
   const cropW = maxX - minX + 1;
   const cropH = maxY - minY + 1;
-
-  // Add 6% padding around the tightest crop
-  const pad  = Math.round(Math.max(cropW, cropH) * 0.06);
-  const size = Math.max(cropW, cropH) + pad * 2;
+  const pad   = Math.round(Math.max(cropW, cropH) * 0.06);
+  const size  = Math.max(cropW, cropH) + pad * 2;
 
   const out    = new OffscreenCanvas(size, size);
   const outCtx = out.getContext("2d") as OffscreenCanvasRenderingContext2D;
 
-  // Draw just the cropped region, centred in the square output
   outCtx.drawImage(
     analysisCanvas,
-    minX,
-    minY,
-    cropW,
-    cropH,
+    minX, minY, cropW, cropH,
     Math.round((size - cropW) / 2),
     Math.round((size - cropH) / 2),
-    cropW,
-    cropH,
+    cropW, cropH,
   );
 
   return out.convertToBlob({ type: "image/png", quality: 1 });
