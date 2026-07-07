@@ -27,6 +27,10 @@ import React, {
   useRef,
   useState,
 } from "react";
+
+// Neutral warm-white shown in the letterbox areas when object-fit:contain
+// leaves empty space around the clothing item.
+const PHOTO_BG = "#f5f2ee";
 import { ClothingItem } from "@workspace/api-client-react";
 import { getImageUrl } from "@/lib/utils";
 
@@ -82,10 +86,23 @@ export const ClosetRow = forwardRef<ClosetRowHandle, ClosetRowProps>(
     // content changes (e.g. item replaced at the same position).
     const lastNotifiedId = useRef<number | null>(null);
 
-    // Clamp centredIdx when items array shrinks
+    // Track previous length so we can detect additions vs deletions
+    const prevLengthRef = useRef(items.length);
+
     useEffect(() => {
+      const prev = prevLengthRef.current;
+      prevLengthRef.current = items.length;
+
       if (items.length === 0) return;
-      setCentredIdx(i => Math.max(0, Math.min(items.length - 1, i)));
+
+      if (items.length > prev) {
+        // New item uploaded — jump to index 0 (newest item, desc-sorted)
+        setCentredIdx(0);
+        setDragX(0);
+      } else {
+        // Deletion: clamp so index stays valid
+        setCentredIdx(i => Math.max(0, Math.min(items.length - 1, i)));
+      }
     }, [items.length]);
 
     // Notify parent whenever the centered item's identity changes
@@ -272,7 +289,7 @@ export const ClosetRow = forwardRef<ClosetRowHandle, ClosetRowProps>(
                     height: photoH,
                     overflow: "hidden",
                     borderRadius: "10px",
-                    background: "transparent",
+                    background: PHOTO_BG,
                     border: isCenter ? CENTER_BORDER : "none",
                     boxShadow: "none",
                     position: "relative",
@@ -290,7 +307,7 @@ export const ClosetRow = forwardRef<ClosetRowHandle, ClosetRowProps>(
                       style={{
                         width: "100%",
                         height: "100%",
-                        objectFit: "cover",
+                        objectFit: "contain",
                         objectPosition: "center",
                         display: "block",
                       }}

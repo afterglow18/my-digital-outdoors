@@ -1,5 +1,5 @@
 import express, { Router, type IRouter } from "express";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, desc } from "drizzle-orm";
 import { GoogleGenAI } from "@google/genai";
 import { db, clothingItemsTable, savedOutfitsTable, outfitItemsTable, CLOTHING_CATEGORIES } from "@workspace/db";
 import {
@@ -99,12 +99,12 @@ router.get("/clothing", async (req, res): Promise<void> => {
       .select()
       .from(clothingItemsTable)
       .where(eq(clothingItemsTable.category, parsed.data.category))
-      .orderBy(clothingItemsTable.createdAt);
+      .orderBy(desc(clothingItemsTable.createdAt));
   } else {
     items = await db
       .select()
       .from(clothingItemsTable)
-      .orderBy(clothingItemsTable.createdAt);
+      .orderBy(desc(clothingItemsTable.createdAt));
   }
 
   res.json(items);
