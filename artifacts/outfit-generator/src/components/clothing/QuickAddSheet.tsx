@@ -1,15 +1,16 @@
 /**
  * QuickAddSheet
  *
- * Upload flow (v1 — no background removal):
- *   pick ──(file chosen)──► uploading ──► close
+ * Upload flow:
+ *   pick ──(file chosen)──► validating ──► uploading ──► close
+ *                                  └──(not clothing)──► pick (error shown)
  *
- * The original photo is encoded to PNG and stored as-is.
+ * The clothing check calls POST /api/clothing/validate-image with the base64
+ * PNG; Gemini decides whether it's a wearable item.  The check fails open so
+ * a Gemini outage never blocks legitimate uploads.
  *
- * To re-enable background removal in a future update, replace the
- * `encodeToPng(file)` call in handleFile with `processClothingImage(file)`
- * from @/lib/processImage and restore the "bg-removing" / "bg-failed"
- * phases.  All the pipeline code lives in that module, ready to use.
+ * To re-enable background removal in a future update, replace encodeToPng
+ * with processClothingImage from @/lib/processImage.
  */
 import React, { useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -39,10 +40,11 @@ const CATEGORY_LABELS: Record<Category, string> = {
 };
 
 type Phase =
-  | "pick"       // two-button landing screen
-  | "uploading"; // encoding + uploading PNG, creating DB record
+  | "pick"        // two-button landing screen
+  | "validating"  // checking with Gemini whether the image is clothing
+  | "uploading";  // encoding + uploading PNG, creating DB record
 
-// ── Upload helper ──────────────────────────────────────────────────────────────
+// ── Helpers ────────────────────────────────────────────────────────────────────
 
 async function uploadBlob(blob: Blob, filename: string): Promise<string> {
   const res = await fetch("/api/storage/uploads/request-url", {
@@ -65,6 +67,66 @@ async function uploadBlob(blob: Blob, filename: string): Promise<string> {
   if (!put.ok) throw new Error("Upload PUT failed");
 
   return objectPath;
+}
+
+/** Convert a Blob to a base64 string (without the data-URL prefix). */
+async function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload  = () => resolve((reader.result as string).split(",")[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+/**
+ * Shrink a PNG blob to at most `maxDim` on its longest edge for the
+ * classification call.  Returns a small JPEG blob (enough for Gemini to
+ * classify; no need for full resolution).
+ */
+async function resizeForValidation(blob: Blob, maxDim = 512): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(blob);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+      const w = Math.round(img.width  * scale);
+      const h = Math.round(img.height * scale);
+      const canvas = document.createElement("canvas");
+      canvas.width  = w;
+      canvas.height = h;
+      canvas.getContext("2d")!.drawImage(img, 0, 0, w, h);
+      canvas.toBlob(
+        (b) => (b ? resolve(b) : reject(new Error("canvas.toBlob failed"))),
+        "image/jpeg",
+        0.85,
+      );
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
+async function validateIsClothing(
+  pngBlob: Blob,
+): Promise<{ isClothing: boolean; reason: string }> {
+  // Resize to a small thumbnail so the base64 payload stays under ~300 KB
+  const thumb = await resizeForValidation(pngBlob, 512);
+  const imageBase64 = await blobToBase64(thumb);
+
+  const res = await fetch("/api/clothing/validate-image", {
+    method:  "POST",
+    headers: { "Content-Type": "application/json" },
+    body:    JSON.stringify({ imageBase64 }),
+  });
+
+  if (!res.ok) {
+    // Fail open: validation endpoint unreachable → allow upload
+    return { isClothing: true, reason: "Validation unavailable" };
+  }
+
+  return res.json() as Promise<{ isClothing: boolean; reason: string }>;
 }
 
 // ── Component ──────────────────────────────────────────────────────────────────
@@ -102,15 +164,40 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount }: P
     onOpenChange(false);
   }, [onOpenChange]);
 
-  // ── File picked → encode → upload → create DB record → close ─────────────
+  // ── File picked → encode → validate → upload → create DB record → close ──
   const handleFile = useCallback(async (file: File) => {
-    setPhase("uploading");
     setErrorMsg(null);
 
+    // 1. Encode to PNG
+    setPhase("validating");
+    let png: Blob;
     try {
-      // Encode to PNG (normalises camera JPEGs; preserves original dimensions).
-      // Future: swap encodeToPng for processClothingImage to re-enable bg removal.
-      const png      = await encodeToPng(file);
+      png = await encodeToPng(file);
+    } catch (err) {
+      console.error("PNG encoding failed:", err);
+      setErrorMsg("Could not read the photo. Please try again.");
+      setPhase("pick");
+      return;
+    }
+
+    // 2. Validate with Gemini
+    try {
+      const { isClothing, reason } = await validateIsClothing(png);
+      if (!isClothing) {
+        setErrorMsg(
+          `That doesn't look like a clothing item. ${reason ? reason : "Please try a different photo."}`
+        );
+        setPhase("pick");
+        return;
+      }
+    } catch (err) {
+      // Validation threw unexpectedly — fail open and continue
+      console.warn("Clothing validation error (failing open):", err);
+    }
+
+    // 3. Upload & save
+    setPhase("uploading");
+    try {
       const filename = `${category}-${Date.now()}.png`;
       const path     = await uploadBlob(png, filename);
 
@@ -243,6 +330,27 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount }: P
                     </li>
                   ))}
                 </ul>
+              </div>
+            </motion.div>
+          )}
+
+          {/* ── VALIDATING ── */}
+          {phase === "validating" && (
+            <motion.div
+              key="validating"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex-1 flex flex-col items-center justify-center gap-5 p-6"
+            >
+              <div className="w-28 h-28 border-4 border-black rounded-3xl bg-white
+                              flex items-center justify-center
+                              shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+                <span className="text-5xl leading-none animate-pulse">👕</span>
+              </div>
+              <div className="text-center">
+                <p className="font-display font-bold text-2xl uppercase tracking-tight">Checking…</p>
+                <p className="text-sm text-muted-foreground mt-1">Making sure this is a clothing item.</p>
               </div>
             </motion.div>
           )}
