@@ -37,43 +37,6 @@ const SHADOW_CTR  = "0 4px 18px rgba(200,100,120,0.22), 0 1px 4px rgba(0,0,0,0.1
 import { ClothingItem } from "@workspace/api-client-react";
 import { getImageUrl } from "@/lib/utils";
 
-// ── Decorative hanger SVG ─────────────────────────────────────────────────────
-// Rendered above the left/right side cards to reinforce the hanging-in-closet
-// theme.  Sized relative to the slot width so it scales on all screen sizes.
-function HangerSvg({ slotWidth, opacity }: { slotWidth: number; opacity: number }) {
-  const w = Math.max(18, Math.round(slotWidth * 0.34));
-  const h = Math.round(w * 0.66);
-  return (
-    <svg
-      width={w}
-      height={h}
-      viewBox="0 0 30 20"
-      fill="none"
-      aria-hidden="true"
-      style={{ display: "block", opacity, filter: "drop-shadow(0 1px 1px rgba(0,0,0,0.18))" }}
-    >
-      {/* Hook — small J-curve at top-centre */}
-      <path
-        d="M15 1.2 C17.2 0.8 18.8 2.5 17.2 4.2 C16.5 4.9 15.2 5 14.5 4.6"
-        stroke="#C8961A"
-        strokeWidth="2"
-        strokeLinecap="round"
-        fill="none"
-      />
-      {/* Shoulders — arch from hook down to each side */}
-      <path
-        d="M14.5 4.6 C14.5 4.6 28 11 29 17 L1 17 C2 11 14.5 4.6 15 4.6 Z"
-        stroke="#C8961A"
-        strokeWidth="1.7"
-        strokeLinejoin="round"
-        fill="rgba(200,155,26,0.10)"
-      />
-      {/* Bottom bar */}
-      <line x1="1" y1="17" x2="29" y2="17" stroke="#C8961A" strokeWidth="2.2" strokeLinecap="round" />
-    </svg>
-  );
-}
-
 // ── Types ─────────────────────────────────────────────────────────────────────
 export interface ClosetRowHandle {
   scrollToIndex: (index: number, smooth?: boolean) => void;
@@ -353,25 +316,6 @@ export const ClosetRow = forwardRef<ClosetRowHandle, ClosetRowProps>(
                   zIndex: isCenter ? 2 : 1,
                 }}
               >
-                {/* Decorative gold hanger — only for side (non-centre) cards.
-                    Positioned at the top of the slot so it appears to hang from
-                    the closet rod above.  Shares the card's live opacity so it
-                    fades naturally during cover-flow drag/snap. */}
-                {!isCenter && (
-                  <div
-                    aria-hidden="true"
-                    style={{
-                      position: "absolute",
-                      top: Math.max(2, Math.round((containerH - photoH) / 2) - Math.round(slotW * 0.34 * 0.66) - 2),
-                      left: "50%",
-                      transform: "translateX(-50%)",
-                      pointerEvents: "none",
-                    }}
-                  >
-                    <HangerSvg slotWidth={slotW} opacity={opacity} />
-                  </div>
-                )}
-
                 {/* Photo card — scales, fades, and recolours as it moves
                     to/from centre.  transform-origin centre keeps the card
                     visually anchored in its slot. */}
