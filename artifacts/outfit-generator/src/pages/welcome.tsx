@@ -243,6 +243,27 @@ export default function WelcomePage({ onEnter }: Props) {
             </button>
           </motion.div>
         )}
+      {/* Privacy policy link */}
+      <a
+        href="https://classy-alpaca-441.notion.site/Privacy-Policy-39682db6065380b19dedcb108d4a0ef4"
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{
+          position: "absolute",
+          bottom: "max(14px, env(safe-area-inset-bottom))",
+          left: 0, right: 0,
+          textAlign: "center",
+          fontSize: 11,
+          fontWeight: 500,
+          color: "rgba(255,255,255,0.45)",
+          textDecoration: "none",
+          letterSpacing: "0.02em",
+          zIndex: 20,
+          pointerEvents: "auto",
+        }}
+      >
+        Privacy Policy
+      </a>
       </div>
     </div>
   );
