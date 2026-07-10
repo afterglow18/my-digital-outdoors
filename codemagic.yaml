@@ -48,14 +48,14 @@ workflows:
       - name: Capacitor add iOS and sync
         script: |
           cd artifacts/outfit-generator
-          if [ ! -d "ios" ]; then
-            npx cap add ios
-          fi
+          rm -rf ios
+          npx cap add ios
           npx cap sync ios
 
       - name: Pod install
         script: |
           cd artifacts/outfit-generator/ios/App
+          ls -la
           pod install
 
       - name: Set build number
