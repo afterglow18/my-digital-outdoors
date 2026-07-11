@@ -67,7 +67,7 @@ const LM = {
     { sectionTop: 0.281, shelfY: 0.384, btnCY: 0.260 },  // MAKEUP     y=432–590
     { sectionTop: 0.430, shelfY: 0.542, btnCY: 0.407 },  // SKINCARE   y=660–832
     { sectionTop: 0.587, shelfY: 0.703, btnCY: 0.565 },  // HAIR       y=902–1080
-    { sectionTop: 0.742, shelfY: 0.820, btnCY: 0.723 },  // FRAGRANCES y=1140–1260
+    { sectionTop: 0.762, shelfY: 0.860, btnCY: 0.723 },  // FRAGRANCES y=1170–1320
   ],
 
   saveAreaY: 0.84,
