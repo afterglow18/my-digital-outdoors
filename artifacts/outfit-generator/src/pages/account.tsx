@@ -1,31 +1,40 @@
 /**
- * Settings page — Backup, Restore, and Subscription management.
- * Replaces the old Account page (which required server-side auth).
+ * Settings / Account page
+ *
+ * Layout (top to bottom):
+ *   1. MY PLAN      — current plan badge, upgrade CTA, restore link
+ *   2. BACKUP & RESTORE — export/import with warning text
+ *   3. MY DIGITAL SUITCASE — app version + tagline
  */
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Download, Upload, RefreshCw, Loader2, Check, AlertTriangle, Star } from "lucide-react";
+import { Download, Upload, RefreshCw, Loader2, Check, AlertTriangle } from "lucide-react";
 import { exportBackup, importBackup, pickBackupFile } from "@/lib/backup";
 import { useSubscription } from "@/lib/revenuecat";
 import { useQueryClient } from "@tanstack/react-query";
-import { getListClothingQueryKey, getListOutfitsQueryKey, getWardrobeStatsQueryKey } from "@/hooks/useLocalDB";
+import {
+  getListClothingQueryKey,
+  getListOutfitsQueryKey,
+  getWardrobeStatsQueryKey,
+} from "@/hooks/useLocalDB";
 import { Capacitor } from "@capacitor/core";
 
-// ── Sub-components ────────────────────────────────────────────────────────────
+// ─── Card shell ───────────────────────────────────────────────────────────────
 
-function Section({
-  title,
+function Card({
   emoji,
+  title,
   children,
 }: {
-  title:    string;
-  emoji:    string;
+  emoji: string;
+  title: string;
   children: React.ReactNode;
 }) {
   return (
-    <div className="bg-white border-2 border-black rounded-2xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
-      <div className="px-4 py-3 border-b-2 border-black bg-secondary/20 flex items-center gap-2">
-        <span className="text-lg leading-none">{emoji}</span>
+    <div className="bg-white border-[3px] border-black rounded-2xl overflow-hidden">
+      {/* Header row */}
+      <div className="flex items-center gap-2 px-4 py-3 border-b-[3px] border-black">
+        <span className="text-xl leading-none">{emoji}</span>
         <h2 className="font-display font-bold text-base uppercase tracking-tight">{title}</h2>
       </div>
       <div className="p-4 flex flex-col gap-3">{children}</div>
@@ -33,60 +42,70 @@ function Section({
   );
 }
 
-function ActionButton({
+// ─── Big yellow action button ─────────────────────────────────────────────────
+
+function YellowButton({
   onClick,
   pending,
   icon: Icon,
   label,
-  variant = "primary",
 }: {
-  onClick:  () => void;
+  onClick: () => void;
   pending?: boolean;
-  icon:     React.ElementType;
-  label:    string;
-  variant?: "primary" | "secondary" | "gold";
+  icon: React.ElementType;
+  label: string;
 }) {
-  const base =
-    "w-full flex items-center justify-center gap-2 py-3 border-4 border-black rounded-xl font-display font-bold text-sm uppercase tracking-tight shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed transition-all";
-
-  const variants: Record<string, string> = {
-    primary:   "bg-primary text-black",
-    secondary: "bg-white text-black",
-    gold:      "bg-[#E8D4B0] text-[#3A2210]",
-  };
-
   return (
-    <button onClick={onClick} disabled={!!pending} className={`${base} ${variants[variant]}`}>
-      {pending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Icon className="w-4 h-4" />}
+    <button
+      onClick={onClick}
+      disabled={!!pending}
+      className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl
+                 border-[3px] border-black font-display font-bold text-sm uppercase
+                 tracking-tight bg-primary text-black
+                 active:translate-x-0.5 active:translate-y-0.5 transition-all
+                 disabled:opacity-50 disabled:cursor-not-allowed"
+    >
+      {pending ? (
+        <Loader2 className="w-4 h-4 animate-spin" />
+      ) : (
+        <Icon className="w-4 h-4" />
+      )}
       {label}
     </button>
   );
 }
 
-// ── Main page ─────────────────────────────────────────────────────────────────
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function AccountPage() {
   const qc = useQueryClient();
-  const { isSubscribed, offerings, purchase, restore, isPurchasing, isRestoring } =
-    useSubscription();
+  const {
+    isSubscribed,
+    offerings,
+    purchase,
+    restore,
+    isPurchasing,
+    isRestoring,
+  } = useSubscription();
 
-  // Backup/restore state
   const [exportPending, setExportPending] = useState(false);
   const [importPending, setImportPending] = useState(false);
-  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [msg, setMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  const showMessage = (type: "success" | "error", text: string) => {
-    setMessage({ type, text });
-    setTimeout(() => setMessage(null), 4000);
+  const flash = (type: "success" | "error", text: string) => {
+    setMsg({ type, text });
+    setTimeout(() => setMsg(null), 4500);
   };
+
+  // ── Handlers ────────────────────────────────────────────────────────────────
 
   const handleExport = async () => {
     setExportPending(true);
     try {
       await exportBackup();
-      showMessage("success", "Backup exported — check your Files app or Share Sheet.");
+      flash("success", "Backup exported — save it to Files or iCloud Drive.");
     } catch (err) {
-      showMessage("error", err instanceof Error ? err.message : "Export failed");
+      flash("error", err instanceof Error ? err.message : "Export failed");
     } finally {
       setExportPending(false);
     }
@@ -97,17 +116,16 @@ export default function AccountPage() {
     try {
       const json = await pickBackupFile();
       const result = await importBackup(json);
-      // Refresh all local data
       await qc.invalidateQueries({ queryKey: getListClothingQueryKey() });
       await qc.invalidateQueries({ queryKey: getListOutfitsQueryKey() });
       await qc.invalidateQueries({ queryKey: getWardrobeStatsQueryKey() });
-      showMessage(
+      flash(
         "success",
         `Restored ${result.clothingAdded} items and ${result.outfitsAdded} outfits.` +
-          (result.skippedItems > 0 ? ` (${result.skippedItems} already existed.)` : ""),
+          (result.skippedItems > 0 ? ` (${result.skippedItems} skipped — already exist.)` : ""),
       );
     } catch (err) {
-      showMessage("error", err instanceof Error ? err.message : "Import failed");
+      flash("error", err instanceof Error ? err.message : "Import failed");
     } finally {
       setImportPending(false);
     }
@@ -116,138 +134,152 @@ export default function AccountPage() {
   const handlePurchase = async () => {
     const pkg = offerings?.current?.availablePackages?.[0];
     if (!pkg) {
-      showMessage("error", Capacitor.isNativePlatform() ? "No products available yet." : "Purchases only work on iOS.");
+      flash(
+        "error",
+        Capacitor.isNativePlatform()
+          ? "No products available yet — try again shortly."
+          : "Purchases only work on iOS.",
+      );
       return;
     }
     try {
       await purchase(pkg);
-      showMessage("success", "Purchase successful — thanks for upgrading! 🎉");
+      flash("success", "Purchase successful — welcome to Pro! 🎉");
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Purchase cancelled";
-      if (!msg.toLowerCase().includes("cancel")) showMessage("error", msg);
+      const m = err instanceof Error ? err.message : "";
+      if (!m.toLowerCase().includes("cancel")) flash("error", m || "Purchase failed");
     }
   };
 
   const handleRestore = async () => {
     try {
       await restore();
-      showMessage("success", "Purchases restored.");
+      flash("success", "Purchases restored.");
     } catch (err) {
-      showMessage("error", err instanceof Error ? err.message : "Could not restore");
+      flash("error", err instanceof Error ? err.message : "Could not restore");
     }
   };
 
-  const pkg = offerings?.current?.availablePackages?.[0];
-  const priceString = pkg?.product?.priceString ?? "$9.99";
+  // Price from RC offering; fall back for browser preview
+  const rcPkg = offerings?.current?.availablePackages?.[0];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const priceString: string = (rcPkg as any)?.product?.priceString ?? "$9.99";
 
   return (
-    <div className="min-h-full flex flex-col pt-8 px-4 pb-8 bg-secondary/10">
-      <header className="mb-6">
-        <h1 className="text-4xl font-display font-bold uppercase tracking-tighter mb-1">Settings</h1>
-        <p className="font-medium text-muted-foreground text-sm">Your suitcase, your device.</p>
+    <div
+      className="min-h-full flex flex-col px-4 pb-10"
+      style={{ paddingTop: "max(2rem, env(safe-area-inset-top))", background: "#F5F0E8" }}
+    >
+      {/* Page title */}
+      <header className="mb-5">
+        <h1 className="font-display font-bold text-4xl uppercase tracking-tighter leading-none">
+          My Digital<br />Suitcase
+        </h1>
       </header>
 
-      {/* Feedback messages */}
+      {/* Flash message */}
       <AnimatePresence>
-        {message && (
+        {msg && (
           <motion.div
             key="msg"
-            initial={{ opacity: 0, y: -8 }}
+            initial={{ opacity: 0, y: -6 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
+            exit={{ opacity: 0, y: -6 }}
             className={`mb-4 px-4 py-3 rounded-xl border-2 border-black text-sm font-medium flex items-start gap-2
-              ${message.type === "success" ? "bg-green-50 text-green-800" : "bg-amber-50 text-amber-800"}`}
+              ${msg.type === "success" ? "bg-green-50 text-green-800" : "bg-amber-50 text-amber-800"}`}
           >
-            {message.type === "success"
+            {msg.type === "success"
               ? <Check className="w-4 h-4 shrink-0 mt-0.5" />
               : <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />}
-            {message.text}
+            {msg.text}
           </motion.div>
         )}
       </AnimatePresence>
 
       <div className="flex flex-col gap-4">
 
-        {/* Backup & Restore */}
-        <Section title="Backup & Restore" emoji="💾">
+        {/* ── 1. MY PLAN ──────────────────────────────────────────────────── */}
+        <Card emoji="👑" title="My Plan">
+          {/* Current plan row */}
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-black/70">Current plan</span>
+            <span
+              className="text-sm font-bold px-3 py-0.5 rounded-full border-2 border-black"
+              style={{ background: isSubscribed ? "#F5C842" : "transparent" }}
+            >
+              {isSubscribed ? "Pro" : "Free"}
+            </span>
+          </div>
+
+          {isSubscribed ? (
+            <div className="flex items-center gap-2 text-sm font-semibold text-green-700
+                            bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+              <Check className="w-4 h-4 shrink-0" />
+              Pro Stylist active — unlimited everything
+            </div>
+          ) : (
+            <YellowButton
+              onClick={handlePurchase}
+              pending={isPurchasing}
+              icon={isPurchasing ? Loader2 : (() => null)}
+              label={`Upgrade — ${priceString}/mo`}
+            />
+          )}
+
+          {/* Restore link */}
+          <button
+            onClick={handleRestore}
+            disabled={isRestoring}
+            className="flex items-center justify-center gap-1.5 text-sm font-medium text-black/50
+                       hover:text-black/70 transition-colors mx-auto"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            {isRestoring ? "Restoring…" : "Restore Purchases"}
+          </button>
+        </Card>
+
+        {/* ── 2. BACKUP & RESTORE ─────────────────────────────────────────── */}
+        <Card emoji="💾" title="Backup & Restore">
           <p className="text-sm text-black/60 leading-snug">
-            Your wardrobe lives only on this device. Export a backup before switching phones or reinstalling the app.
+            Export your suitcase to a file. Save it to iCloud Drive or Files to
+            keep it safe across phone upgrades.
           </p>
-          <ActionButton
+
+          <YellowButton
             onClick={handleExport}
             pending={exportPending}
             icon={Download}
             label="Export Backup"
-            variant="primary"
           />
-          <ActionButton
+
+          {/* Warning */}
+          <p className="text-sm font-bold leading-snug" style={{ color: "#C0390B" }}>
+            ⚠️ Deleting the app removes all your suitcase data.
+            Export a backup first to keep it safe.
+          </p>
+
+          <YellowButton
             onClick={handleImport}
             pending={importPending}
             icon={Upload}
             label="Import Backup"
-            variant="secondary"
           />
-        </Section>
 
-        {/* Subscription */}
-        <Section title="Pro Stylist" emoji="⭐">
-          {isSubscribed ? (
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-2 text-sm font-bold text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
-                <Check className="w-4 h-4 shrink-0" /> Pro Stylist active — unlimited everything
-              </div>
-              <button
-                onClick={handleRestore}
-                disabled={isRestoring}
-                className="text-xs text-black/40 underline text-center pt-1"
-              >
-                {isRestoring ? "Restoring…" : "Restore purchases"}
-              </button>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-3">
-              <ul className="flex flex-col gap-1.5 text-sm text-black/70">
-                {["Unlimited wardrobe items", "Unlimited saved outfits", "Priority support"].map((f) => (
-                  <li key={f} className="flex items-center gap-2">
-                    <Star className="w-3.5 h-3.5 text-amber-500 shrink-0" /> {f}
-                  </li>
-                ))}
-              </ul>
-              <ActionButton
-                onClick={handlePurchase}
-                pending={isPurchasing}
-                icon={Star}
-                label={`Upgrade — ${priceString}/month`}
-                variant="gold"
-              />
-              <button
-                onClick={handleRestore}
-                disabled={isRestoring}
-                className="text-xs text-black/40 underline text-center"
-              >
-                {isRestoring ? "Restoring…" : "Restore previous purchase"}
-              </button>
-            </div>
-          )}
-        </Section>
+          <p className="text-xs text-black/40 text-center leading-snug">
+            Importing replaces your current suitcase with the backup.
+          </p>
+        </Card>
 
-        {/* App info */}
-        <Section title="About" emoji="🧳">
-          <div className="flex flex-col gap-1 text-sm text-black/60">
-            <div className="flex justify-between">
-              <span>App</span>
-              <span className="font-medium text-black">My Digital Suitcase</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Storage</span>
-              <span className="font-medium text-black">On-device (no cloud)</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Offline</span>
-              <span className="font-medium text-black">✓ Always works</span>
-            </div>
-          </div>
-        </Section>
+        {/* ── 3. APP INFO ─────────────────────────────────────────────────── */}
+        <Card emoji="🧳" title="My Digital Suitcase">
+          <p className="text-sm text-black/55 leading-snug">
+            Version 1.0.0
+          </p>
+          <p className="text-sm text-black/55 leading-snug">
+            Your suitcase stays on your device, works offline, and can be
+            backed up with iCloud.
+          </p>
+        </Card>
 
       </div>
     </div>
