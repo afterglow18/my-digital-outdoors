@@ -39,7 +39,7 @@ const HEADLINES: Record<UpgradeReason, string> = {
 };
 
 const SUBTITLES: Record<UpgradeReason, string> = {
-  items:     "You've reached the free limit. Upgrade once, pack everything.",
+  items:     "You've reached the free 20 item limit. Upgrade once, pack everything.",
   outfits:   "You've hit the free outfit limit. Upgrade to save every look.",
   mannequin: "A premium feature — unlock it once.",
 };
