@@ -55,9 +55,13 @@ function useImageRect(ref: RefObject<HTMLDivElement>): ImgRect {
       if (!c) return;
       const cW = c.clientWidth, cH = c.clientHeight;
       const iR = IMG_W / IMG_H;
-      const cR = cW / cH;
-      // Always fill the full width — container clips any excess height.
-      const rW = cW, rH = cW / iR, rL = 0, rT = 0;
+      // Cover: scale image to fill container completely, crop overflow
+      let rW: number, rH: number, rL: number, rT: number;
+      if (cW / cH > iR) {
+        rW = cW; rH = cW / iR; rL = 0; rT = (cH - rH) / 2;
+      } else {
+        rH = cH; rW = cH * iR; rT = 0; rL = (cW - rW) / 2;
+      }
       setRect({ top: rT, left: rL, width: rW, height: rH, containerH: cH });
     };
     compute();
@@ -240,9 +244,9 @@ export default function GeneratePage() {
       style={{
         position: "relative",
         width: "100%",
-        height: `min(calc(100dvh - ${NAV_H}px), calc(100vw * ${(IMG_H / IMG_W).toFixed(6)}))`,
+        height: `calc(100dvh - ${NAV_H}px)`,
         overflow: "hidden",
-        background: "#C8B9A2",
+        background: "#1C0E05",
       }}
     >
       {/* ── Background image ── */}
@@ -272,16 +276,17 @@ export default function GeneratePage() {
             <div style={{
               position: "absolute",
               top: pY(ir, 0.082),
-              left: pX(ir, LM.doorL),
-              width: pW(ir, LM.doorR - LM.doorL),
+              left: 8,
+              right: 8,
               zIndex: 25,
               textAlign: "center",
               pointerEvents: "none",
+              overflow: "hidden",
             }}>
               <div style={{
                 fontFamily: "var(--font-display, serif)",
                 fontWeight: 900,
-                fontSize: Math.max(8, pW(ir, 0.030)),
+                fontSize: Math.max(8, Math.min(pW(ir, 0.030), ir.containerH * 0.025)),
                 letterSpacing: "0.08em",
                 whiteSpace: "nowrap",
                 textTransform: "uppercase",
