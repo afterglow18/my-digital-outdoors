@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.mydigitaloutdoors.app',
-  appName: 'My Digital Outdoors',
+  appName: 'My Outdoors',
   webDir: 'dist/public',
 
   // -------------------------------------------------------------------------
