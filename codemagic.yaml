@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# Codemagic CI/CD — My Digital Suitcase iOS build
+# Codemagic CI/CD — My Digital Outdoors iOS build
 # ─────────────────────────────────────────────────────────────────────────────
 #
 # REQUIRED — Codemagic → your app → Environment variables
@@ -20,7 +20,7 @@ workflows:
     environment:
       ios_signing:
         distribution_type: app_store
-        bundle_identifier: com.mydigitalsuitcase.app
+        bundle_identifier: com.mydigitaloutdoors.app
       xcode: latest
       node: 22
       groups:
@@ -31,9 +31,9 @@ workflows:
         XCODE_PROJECT: artifacts/outfit-generator/ios/App/App.xcodeproj
         XCODE_WORKSPACE: artifacts/outfit-generator/ios/App/App.xcodeproj/project.xcworkspace
         COREPACK_ENABLE_STRICT: "0"
-        BUNDLE_ID: com.mydigitalsuitcase.app
+        BUNDLE_ID: com.mydigitaloutdoors.app
         TEAM_ID: 2A78MFVCJS
-        PROFILE_NAME: My Digital Suitcase
+        PROFILE_NAME: My Digital Outdoors
 
     scripts:
       - name: Install pnpm and dependencies
@@ -100,8 +100,8 @@ workflows:
           /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" App/Info.plist 2>/dev/null || \
           /usr/libexec/PlistBuddy -c "Set :ITSAppUsesNonExemptEncryption false" App/Info.plist
           # Required for Face ID usage
-          /usr/libexec/PlistBuddy -c "Add :NSFaceIDUsageDescription string 'My Suitcase uses Face ID to protect your wardrobe.'" App/Info.plist 2>/dev/null || \
-          /usr/libexec/PlistBuddy -c "Set :NSFaceIDUsageDescription 'My Suitcase uses Face ID to protect your wardrobe.'" App/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :NSFaceIDUsageDescription string 'My Digital Outdoors uses Face ID to protect your wardrobe.'" App/Info.plist 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c "Set :NSFaceIDUsageDescription 'My Digital Outdoors uses Face ID to protect your wardrobe.'" App/Info.plist
 
       - name: Re-apply provisioning profiles after cap sync
         script: |
@@ -136,7 +136,7 @@ workflows:
             ARCHS=arm64 \
             DEVELOPMENT_TEAM=2A78MFVCJS \
             CODE_SIGN_STYLE=Manual \
-            PROVISIONING_PROFILE_SPECIFIER="My Digital Suitcase AppStore" \
+            PROVISIONING_PROFILE_SPECIFIER="My Digital Outdoors AppStore" \
             -archivePath "$CM_BUILD_DIR/build/App.xcarchive" \
             archive
 

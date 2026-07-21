@@ -14,7 +14,7 @@ Xcode automatically generates all required sizes from this single source.
 - **No border / stroke around the edge**
 - **No text that replicates the app name** (Apple guideline, not enforced but recommended)
 
-## Design Suggestions for My Digital Closet
+## Design Suggestions for My Digital Outdoors
 
 **Concept ideas:**
 - A minimalist coat hanger on the cream `#FFFDF7` background with a yellow heart

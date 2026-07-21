@@ -4,7 +4,7 @@
  * Layout (top to bottom):
  *   1. MY PLAN      — current plan badge, upgrade CTA, restore link
  *   2. BACKUP & RESTORE — export/import with warning text
- *   3. MY DIGITAL SUITCASE — app version + tagline
+ *   3. MY DIGITAL OUTDOORS — app version + tagline
  */
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -301,7 +301,7 @@ export default function AccountPage() {
         </Card>
 
         {/* ── 3. APP INFO ─────────────────────────────────────────────────── */}
-        <Card emoji="🧳" title="My Digital Suitcase">
+        <Card emoji="🌲" title="My Digital Outdoors">
           <p className="text-sm text-black/55 leading-snug">
             Version 1.0.0
           </p>
