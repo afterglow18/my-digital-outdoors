@@ -1,0 +1,49 @@
+Resolving deltas:  93% (260/279)
+Resolving deltas:  94% (263/279)
+Resolving deltas:  95% (266/279)
+Resolving deltas:  96% (268/279)
+Resolving deltas:  97% (271/279)
+Resolving deltas:  98% (274/279)
+Resolving deltas:  99% (277/279)
+Resolving deltas: 100% (279/279)
+Resolving deltas: 100% (279/279), done.
+Updating files:  77% (595/768)
+Updating files:  78% (600/768)
+Updating files:  79% (607/768)
+Updating files:  80% (615/768)
+Updating files:  81% (623/768)
+Updating files:  82% (630/768)
+Updating files:  83% (638/768)
+Updating files:  84% (646/768)
+Updating files:  85% (653/768)
+Updating files:  86% (661/768)
+Updating files:  87% (669/768)
+Updating files:  88% (676/768)
+Updating files:  89% (684/768)
+Updating files:  90% (692/768)
+Updating files:  91% (699/768)
+Updating files:  92% (707/768)
+Updating files:  93% (715/768)
+Updating files:  94% (722/768)
+Updating files:  95% (730/768)
+Updating files:  96% (738/768)
+Updating files:  97% (745/768)
+Updating files:  98% (753/768)
+Updating files:  99% (761/768)
+Updating files: 100% (768/768)
+Updating files: 100% (768/768), done.
+Downloading attached_assets/ScreenRecording_07-10-2026_19-49-09_1_1783731177567.mov (57 MB)
+Error downloading object: attached_assets/ScreenRecording_07-10-2026_19-49-09_1_1783731177567.mov (83a2f68): Smudge error: Error downloading attached_assets/ScreenRecording_07-10-2026_19-49-09_1_1783731177567.mov (83a2f68a3bbeb8006f0bff62d4f70d6c8a4092672ccd9021061ba183b1f5a962): [83a2f68a3bbeb8006f0bff62d4f70d6c8a4092672ccd9021061ba183b1f5a962] Object does not exist on the server: [404] Object does not exist on the server
+
+Errors logged to '/Users/builder/clone/.git/lfs/logs/20260721T072940.074228.log'.
+Use `git lfs logs last` to view the log.
+error: external filter 'git-lfs filter-process' failed
+fatal: attached_assets/ScreenRecording_07-10-2026_19-49-09_1_1783731177567.mov: smudge filter lfs failed
+warning: Clone succeeded, but checkout failed.
+You can inspect what was checked out with 'git status'
+and retry with 'git restore --source=HEAD :/'
+
+
+
+Build failed :|
+Failed to clone repository
