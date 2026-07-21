@@ -162,7 +162,7 @@ export default function AccountPage() {
       {/* Page title */}
       <header className="mb-5">
         <h1 className="font-display font-bold text-4xl uppercase tracking-tighter leading-none">
-          My Digital<br />Suitcase
+          My Digital<br />Garage
         </h1>
       </header>
 
@@ -271,7 +271,7 @@ export default function AccountPage() {
         {/* ── 3. BACKUP & RESTORE ─────────────────────────────────────────── */}
         <Card emoji="💾" title="Backup & Restore">
           <p className="text-sm text-black/60 leading-snug">
-            Export your suitcase to a file. Save it to iCloud Drive or Files to
+            Export your garage to a file. Save it to iCloud Drive or Files to
             keep it safe across phone upgrades.
           </p>
 
@@ -284,7 +284,7 @@ export default function AccountPage() {
 
           {/* Warning */}
           <p className="text-sm font-bold leading-snug" style={{ color: "#C0390B" }}>
-            ⚠️ Deleting the app removes all your suitcase data.
+            ⚠️ Deleting the app removes all your garage data.
             Export a backup first to keep it safe.
           </p>
 
@@ -296,7 +296,7 @@ export default function AccountPage() {
           />
 
           <p className="text-xs text-black/40 text-center leading-snug">
-            Importing replaces your current suitcase with the backup.
+            Importing replaces your current garage with the backup.
           </p>
         </Card>
 
@@ -306,7 +306,7 @@ export default function AccountPage() {
             Version 1.0.0
           </p>
           <p className="text-sm text-black/55 leading-snug">
-            Your suitcase stays on your device, works offline, and can be
+            Your garage stays on your device, works offline, and can be
             backed up with iCloud.
           </p>
         </Card>

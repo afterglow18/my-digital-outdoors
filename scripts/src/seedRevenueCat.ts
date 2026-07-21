@@ -61,7 +61,7 @@ interface ProductDef {
 
 const PRODUCTS: ProductDef[] = [
   {
-    identifier:  "digital_suitcase_monthly",
+    identifier:  "digital_garage_monthly",
     displayName: "Monthly – My Digital Outdoors",
     type:        "subscription",
     duration:    "P1M",
@@ -70,7 +70,7 @@ const PRODUCTS: ProductDef[] = [
     pkgName:     "Monthly",
   },
   {
-    identifier:  "digital_suitcase_yearly",
+    identifier:  "digital_garage_yearly",
     displayName: "Yearly – My Digital Outdoors",
     type:        "subscription",
     duration:    "P1Y",
@@ -79,7 +79,7 @@ const PRODUCTS: ProductDef[] = [
     pkgName:     "Yearly",
   },
   {
-    identifier:  "digital_suitcase_lifetime",
+    identifier:  "digital_garage_lifetime",
     displayName: "Lifetime – My Digital Outdoors",
     type:        "non_consumable",
     priceMicros: 9990000,   // $9.99

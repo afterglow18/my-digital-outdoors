@@ -54,11 +54,11 @@ const IMG_W = 1024;
 const IMG_H = 1536;
 const NAV_H = 90;
 
-// ── Landmark fractions (calibrated for suitcase-open-bg.jpg 989×1536) ─────────
-// Real-photo suitcase, shot from above.
+// ── Landmark fractions (calibrated for garage-open-bg.jpg 989×1536) ─────────
+// Real-photo garage, shot from above.
 // Lid interior:  y ≈ 0.05 → 0.38   (rows 1 & 2)
 // Main body:     y ≈ 0.42 → 0.80   (rows 3 & 4)
-// doorL/doorR:   left/right inner walls of the suitcase interior
+// doorL/doorR:   left/right inner walls of the garage interior
 const LM = {
   doorL: 0.182,  // inner left wall
   doorR: 0.776,  // inner right wall
@@ -214,8 +214,8 @@ export default function WardrobePage() {
     >
       {/* ── Background image — object-fit:cover avoids WebKit negative-left clipping bug ── */}
       <img
-        src="/suitcase-open-bg.jpg"
-        alt="My Digital Suitcase"
+        src="/garage-open-bg.jpg"
+        alt="My Digital Garage"
         style={{
           position: "absolute",
           top: 0, left: 0,
@@ -252,7 +252,7 @@ export default function WardrobePage() {
               color: "#1a0800",
               lineHeight: 1.1,
             }}>
-              MY DIGITAL SUITCASE
+              MY DIGITAL GARAGE
             </div>
           </div>
 

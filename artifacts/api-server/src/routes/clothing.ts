@@ -114,7 +114,7 @@ router.post("/clothing/generate-outfit", requireAuth, async (req, res): Promise<
   }
 
   if (Object.keys(byCategory).length === 0) {
-    res.status(422).json({ error: "Your suitcase is empty. Add some items first!" });
+    res.status(422).json({ error: "Your garage is empty. Add some items first!" });
     return;
   }
 

@@ -1,5 +1,5 @@
 /**
- * GeneratePage — "Spin It" screen for My Digital Suitcase.
+ * GeneratePage — "Spin It" screen for My Digital Garage.
  *
  * Uses generate-bg.png (same 1024×1536 dimensions) with the 4-shelf layout.
  * Phase machine:
@@ -245,8 +245,8 @@ export default function GeneratePage() {
     >
       {/* ── Background image — object-fit:cover avoids WebKit negative-left clipping bug ── */}
       <img
-        src="/suitcase-open-bg.jpg"
-        alt="My Digital Suitcase"
+        src="/garage-open-bg.jpg"
+        alt="My Digital Garage"
         style={{
           position: "absolute",
           top: 0, left: 0,
@@ -287,7 +287,7 @@ export default function GeneratePage() {
                 color: "#1a0800",
                 lineHeight: 1.1,
               }}>
-                MY DIGITAL SUITCASE
+                MY DIGITAL GARAGE
               </div>
               <div style={{
                 fontFamily: "var(--font-display, serif)",
@@ -409,13 +409,13 @@ export default function GeneratePage() {
                     padding: "3px 11px", borderRadius: 20,
                     whiteSpace: "nowrap",
                   }}>
-                    Packing your suitcase…
+                    Packing your garage…
                   </span>
                 </motion.div>
               )}
             </AnimatePresence>
 
-            {/* ── Empty suitcase prompt ── */}
+            {/* ── Empty garage prompt ── */}
             {!hasItems && (
               <div style={{
                 position: "absolute",
@@ -435,13 +435,13 @@ export default function GeneratePage() {
                   letterSpacing: "0.07em", textTransform: "uppercase",
                   color: "#3A2210", fontFamily: "var(--font-display)", margin: 0,
                 }}>
-                  Your suitcase is empty
+                  Your garage is empty
                 </p>
                 <p style={{
                   fontSize: 11, color: "#9a5060",
                   marginTop: 5, lineHeight: 1.5,
                 }}>
-                  Add outfits, beauty, toiletries or essentials in the Suitcase tab first.
+                  Add outfits, beauty, toiletries or essentials in the Garage tab first.
                 </p>
               </div>
             )}

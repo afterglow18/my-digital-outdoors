@@ -1,5 +1,5 @@
 /**
- * Local IndexedDB database for My Digital Suitcase.
+ * Local IndexedDB database for My Digital Garage.
  *
  * Works in both the browser (Replit preview) and in the Capacitor iOS WebView —
  * IndexedDB is natively available in both environments and persists to the
@@ -14,7 +14,7 @@
 
 import { openDB, type IDBPDatabase } from "idb";
 
-export const DB_NAME    = "my-digital-suitcase";
+export const DB_NAME    = "my-digital-garage";
 export const DB_VERSION = 1;
 
 // ── Stored types (IndexedDB records) ─────────────────────────────────────────
