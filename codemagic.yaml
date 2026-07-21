@@ -176,8 +176,7 @@ workflows:
             --path "$CM_BUILD_DIR/build/ipa/App.ipa" \
             --key-id "$APP_STORE_CONNECT_KEY_IDENTIFIER" \
             --issuer-id "$APP_STORE_CONNECT_ISSUER_ID" \
-            --private-key "$KEY_ARG" \
-            --testflight
+            --private-key "$KEY_ARG"
 
     artifacts:
       - $CM_BUILD_DIR/build/ipa/*.ipa
