@@ -122,7 +122,7 @@ function TierCard({
 // ── Sheet ─────────────────────────────────────────────────────────────────────
 
 export function UpgradeSheet({ reason, onClose }: Props) {
-  const { offerings, purchase } = useSubscription();
+  const { offerings, purchase, restore, isRestoring } = useSubscription();
   const [selected, setSelected] = useState<TierId>("lifetime");
   const [status,   setStatus]   = useState<"idle" | "pending">("idle");
 
@@ -251,12 +251,40 @@ export function UpgradeSheet({ reason, onClose }: Props) {
         >
           {ctaLabel}
         </button>
-        <button
-          onClick={onClose}
-          className="text-sm font-semibold text-black/35 text-center hover:text-black/55 transition-colors"
-        >
-          Maybe Later
-        </button>
+
+        <div className="flex items-center justify-center gap-4">
+          <button
+            onClick={onClose}
+            className="text-sm font-semibold text-black/35 text-center hover:text-black/55 transition-colors"
+          >
+            Maybe Later
+          </button>
+          <span className="text-black/20 text-sm">·</span>
+          <button
+            onClick={() => restore()}
+            disabled={isRestoring}
+            className="text-sm font-semibold text-black/35 text-center hover:text-black/55 transition-colors disabled:opacity-50"
+          >
+            {isRestoring ? "Restoring…" : "Restore Purchases"}
+          </button>
+        </div>
+
+        {/* Legal links — required by Apple */}
+        <div className="flex items-center justify-center gap-3 pb-1">
+          <button
+            onClick={() => window.open("https://www.apple.com/legal/internet-services/itunes/dev/stdeula/", "_blank", "noopener")}
+            className="text-[10px] font-medium text-black/30 hover:text-black/50 transition-colors underline underline-offset-2"
+          >
+            Terms of Use
+          </button>
+          <span className="text-black/20 text-[10px]">·</span>
+          <button
+            onClick={() => window.open("https://app.notion.com/p/My-Digital-Collection-Privacy-Policy-39682db6065380b19dedcb108d4a0ef4?source=copy_link", "_blank", "noopener")}
+            className="text-[10px] font-medium text-black/30 hover:text-black/50 transition-colors underline underline-offset-2"
+          >
+            Privacy Policy
+          </button>
+        </div>
       </div>
     </motion.div>
   );
