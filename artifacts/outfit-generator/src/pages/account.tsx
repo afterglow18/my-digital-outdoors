@@ -85,6 +85,8 @@ export default function AccountPage() {
     isSubscribed,
     restore,
     isRestoring,
+    refreshCustomerInfo,
+    isRefetching,
   } = useSubscription();
 
   const [showUpgrade, setShowUpgrade] = useState(false);
@@ -204,17 +206,29 @@ export default function AccountPage() {
             <div className="flex items-center gap-2 text-sm font-semibold text-green-700
                             bg-green-50 border border-green-200 rounded-lg px-3 py-2">
               <Check className="w-4 h-4 shrink-0" />
-              Pro Stylist active — unlimited everything
+              Pro active — unlimited everything
             </div>
           ) : (
-            <YellowButton
-              onClick={() => setShowUpgrade(true)}
-              icon={() => null}
-              label="Lifetime Unlock — $9.99"
-            />
+            <>
+              <YellowButton
+                onClick={() => setShowUpgrade(true)}
+                icon={() => null}
+                label="Lifetime Unlock — $9.99"
+              />
+              {/* Shown after a purchase when the badge hasn't flipped yet */}
+              <button
+                onClick={() => refreshCustomerInfo()}
+                disabled={isRefetching}
+                className="flex items-center justify-center gap-1.5 text-xs font-medium
+                           text-black/40 hover:text-black/60 transition-colors mx-auto"
+              >
+                <RefreshCw className={`w-3 h-3 ${isRefetching ? "animate-spin" : ""}`} />
+                {isRefetching ? "Checking…" : "Just purchased? Tap to sync"}
+              </button>
+            </>
           )}
 
-          {/* Restore link */}
+          {/* Restore / re-sync from Apple */}
           <button
             onClick={handleRestore}
             disabled={isRestoring}

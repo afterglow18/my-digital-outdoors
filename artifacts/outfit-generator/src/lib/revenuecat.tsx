@@ -165,10 +165,14 @@ function useSubscriptionContext() {
       return customerInfo;
     },
     onSuccess: (customerInfo) => {
-      // Seed the cache immediately with the fresh CustomerInfo RC just returned,
-      // then invalidate to schedule a background re-fetch for confirmation.
+      // Seed the cache immediately with what RC returned, then schedule
+      // delayed re-fetches because RC often reflects entitlements 1-5s
+      // after the purchasePackage call resolves.
       qc.setQueryData(CUSTOMER_INFO_KEY, customerInfo);
       qc.invalidateQueries({ queryKey: ["revenuecat"] });
+      setTimeout(() => qc.invalidateQueries({ queryKey: CUSTOMER_INFO_KEY }), 2000);
+      setTimeout(() => qc.invalidateQueries({ queryKey: CUSTOMER_INFO_KEY }), 5000);
+      setTimeout(() => qc.invalidateQueries({ queryKey: CUSTOMER_INFO_KEY }), 10000);
     },
   });
 
@@ -193,16 +197,21 @@ function useSubscriptionContext() {
   const isSubscribed =
     customerInfoQuery.data?.entitlements?.active?.[REVENUECAT_ENTITLEMENT_IDENTIFIER] !== undefined;
 
+  const refreshCustomerInfo = () =>
+    qc.invalidateQueries({ queryKey: CUSTOMER_INFO_KEY });
+
   return {
-    customerInfo:  customerInfoQuery.data ?? null,
-    offerings:     offeringsQuery.data ?? null,
+    customerInfo:        customerInfoQuery.data ?? null,
+    offerings:           offeringsQuery.data ?? null,
     isSubscribed,
-    isLoading:     customerInfoQuery.isLoading || offeringsQuery.isLoading,
-    purchase:      purchaseMutation.mutateAsync,
-    restore:       restoreMutation.mutateAsync,
-    isPurchasing:  purchaseMutation.isPending,
-    isRestoring:   restoreMutation.isPending,
-    purchaseError: purchaseMutation.error as Error | null,
+    isLoading:           customerInfoQuery.isLoading || offeringsQuery.isLoading,
+    isRefetching:        customerInfoQuery.isFetching,
+    purchase:            purchaseMutation.mutateAsync,
+    restore:             restoreMutation.mutateAsync,
+    refreshCustomerInfo,
+    isPurchasing:        purchaseMutation.isPending,
+    isRestoring:         restoreMutation.isPending,
+    purchaseError:       purchaseMutation.error as Error | null,
   };
 }
 
