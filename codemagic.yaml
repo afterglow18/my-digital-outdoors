@@ -102,6 +102,13 @@ workflows:
           # Required for Face ID usage
           /usr/libexec/PlistBuddy -c "Add :NSFaceIDUsageDescription string 'My Digital Outdoors uses Face ID to protect your wardrobe.'" App/Info.plist 2>/dev/null || \
           /usr/libexec/PlistBuddy -c "Set :NSFaceIDUsageDescription 'My Digital Outdoors uses Face ID to protect your wardrobe.'" App/Info.plist
+          # Camera & photo library — all three required; missing any one causes SIGABRT or silent refusal
+          /usr/libexec/PlistBuddy -c "Add :NSCameraUsageDescription string 'My Outdoors uses your camera to photograph clothing items for your wardrobe.'" App/Info.plist 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c "Set :NSCameraUsageDescription 'My Outdoors uses your camera to photograph clothing items for your wardrobe.'" App/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :NSPhotoLibraryUsageDescription string 'My Outdoors reads your photo library so you can add clothing photos to your wardrobe.'" App/Info.plist 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c "Set :NSPhotoLibraryUsageDescription 'My Outdoors reads your photo library so you can add clothing photos to your wardrobe.'" App/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :NSPhotoLibraryAddUsageDescription string 'My Outdoors saves captured photos to your photo library.'" App/Info.plist 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c "Set :NSPhotoLibraryAddUsageDescription 'My Outdoors saves captured photos to your photo library.'" App/Info.plist
 
       - name: Re-apply provisioning profiles after cap sync
         script: |

@@ -15,6 +15,19 @@ const config: CapacitorConfig = {
     backgroundColor: '#F9F4EE',
     // Allow inline media playback (used for wardrobe image previews)
     allowsInlineMediaPlayback: true,
+
+    // -------------------------------------------------------------------------
+    // Privacy usage descriptions — required by iOS TCC; missing any one causes
+    // a hard crash (SIGABRT) or silent refusal when camera/library is accessed.
+    // -------------------------------------------------------------------------
+    infoPlist: {
+      NSCameraUsageDescription:
+        'My Outdoors uses your camera to photograph clothing items for your wardrobe.',
+      NSPhotoLibraryUsageDescription:
+        'My Outdoors reads your photo library so you can add clothing photos to your wardrobe.',
+      NSPhotoLibraryAddUsageDescription:
+        'My Outdoors saves captured photos to your photo library.',
+    },
   },
 
   plugins: {
