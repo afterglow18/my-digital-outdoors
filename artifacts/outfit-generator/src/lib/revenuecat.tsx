@@ -101,7 +101,10 @@ function useSubscriptionContext() {
       return (result as any).offerings ?? result ?? null;
     },
     staleTime: 300 * 1000,
-    retry: false,
+    // Retry a few times with backoff — RC may not be configured yet on first
+    // mount if initializeRevenueCat() hasn't resolved (race condition).
+    retry: 3,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 8000),
   });
 
   // ── Foreground + server-push listeners ─────────────────────────────────────

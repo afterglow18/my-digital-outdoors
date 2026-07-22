@@ -13,10 +13,18 @@ import { queryClient } from '@/lib/queryClient';
 import { BiometricLockProvider } from '@/context/BiometricLockContext';
 
 // ── Initialise RevenueCat once at startup ────────────────────────────────────
+// After RC configures itself, invalidate offerings so the query re-fetches
+// with a live Purchases instance (avoids the race where the query runs before
+// RC is configured and gets a "not initialized" error).
 try {
-  initializeRevenueCat().catch((err) =>
-    console.warn("[RevenueCat] Init error (non-fatal):", err)
-  );
+  initializeRevenueCat()
+    .then(() => {
+      queryClient.invalidateQueries({ queryKey: ["revenuecat"] });
+      console.log("[RevenueCat] Initialized — offerings query invalidated");
+    })
+    .catch((err) =>
+      console.warn("[RevenueCat] Init error (non-fatal):", err)
+    );
 } catch (err) {
   console.warn("[RevenueCat] Init error (non-fatal):", err);
 }
