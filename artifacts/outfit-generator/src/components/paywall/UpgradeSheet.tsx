@@ -27,19 +27,19 @@ interface Props {
 const FEATURES = [
   "Unlimited clothing items",
   "Unlimited saved outfits",
-  "Save your entire wardrobe",
+  "Save all your gear",
   "One-time payment options",
   "Choose monthly, yearly or lifetime!",
 ] as const;
 
 const HEADLINES: Record<UpgradeReason, string> = {
-  items:     "UNLOCK YOUR UNLIMITED DIGITAL GARAGE",
-  outfits:   "UNLOCK YOUR UNLIMITED DIGITAL GARAGE",
-  mannequin: "UNLOCK YOUR UNLIMITED DIGITAL GARAGE",
+  items:     "UNLOCK YOUR UNLIMITED OUTDOOR KIT",
+  outfits:   "UNLOCK YOUR UNLIMITED OUTDOOR KIT",
+  mannequin: "UNLOCK YOUR UNLIMITED OUTDOOR KIT",
 };
 
 const SUBTITLES: Record<UpgradeReason, string> = {
-  items:     "You've reached the free 20 item limit.\nUpgrade once, pack everything.",
+  items:     "You've reached the free 20 item limit.\nUpgrade once, gear up forever.",
   outfits:   "You've hit the free outfit limit. Upgrade to save every look.",
   mannequin: "A premium feature — unlock it once.",
 };
@@ -207,14 +207,14 @@ export function UpgradeSheet({ reason, onClose }: Props) {
           <div className="px-4 py-4 flex flex-col gap-2">
             <p className="font-display font-bold uppercase text-[1.45rem] leading-[0.92] tracking-tight"
                style={{ color: "hsl(35 55% 82%)" }}>
-              Unlimited packed garages
+              Unlimited gear collections
             </p>
             <p className="font-display font-bold uppercase text-[1.45rem] leading-[0.92] tracking-tight"
                style={{ color: "hsl(35 55% 82%)" }}>
               Unlimited saved outfits
             </p>
             <p className="text-white/60 text-xs font-medium mt-1 leading-snug">
-              Your entire wardrobe, beautifully packed — forever.
+              All your gear, beautifully organized — forever.
             </p>
           </div>
         </div>

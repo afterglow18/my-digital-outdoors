@@ -265,7 +265,7 @@ export default function WelcomePage({ onEnter }: Props) {
             lineHeight: 1.1,
             color: "#E8D4B0",
           }}>
-            MY DIGITAL<br />GARAGE
+            MY DIGITAL<br />OUTDOORS
           </div>
           <div style={{
             marginTop: 9,
@@ -303,7 +303,7 @@ export default function WelcomePage({ onEnter }: Props) {
             pointerEvents: phase === "idle" ? "auto" : "none",
           }}
         >
-          Open Garage ✨
+          Open Kit ✨
         </motion.button>
       </motion.div>
 

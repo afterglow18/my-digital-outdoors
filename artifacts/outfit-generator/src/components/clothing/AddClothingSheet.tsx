@@ -36,7 +36,7 @@ export function AddClothingSheet({ open, onOpenChange, defaultCategory }: AddClo
         key={defaultCategory ?? "any"}
         onSubmit={handleSubmit}
         isSubmitting={createItem.isPending}
-        submitLabel="Add to Garage"
+        submitLabel="Add to Kit"
         initialData={defaultCategory ? { category: defaultCategory as ClothingFormData["category"] } : undefined}
       />
     </Sheet>

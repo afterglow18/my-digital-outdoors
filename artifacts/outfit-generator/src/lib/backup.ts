@@ -62,7 +62,7 @@ export async function exportBackup(): Promise<void> {
 
   const json = JSON.stringify(backup, null, 2);
   const dateStr = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
-  const fileName = `my-digital-garage-backup-${dateStr}.json`;
+  const fileName = `my-digital-outdoors-backup-${dateStr}.json`;
 
   if (Capacitor.isNativePlatform()) {
     // Write to a temp file then share
@@ -81,7 +81,7 @@ export async function exportBackup(): Promise<void> {
     // Share via iOS Share Sheet
     const { Share } = await import("@capacitor/share");
     await Share.share({
-      title: "My Digital Garage Backup",
+      title: "My Digital Outdoors Backup",
       text:  `Backup from ${dateStr} — ${clothing.length} items, ${outfits.length} outfits`,
       url:   uri,
     });
