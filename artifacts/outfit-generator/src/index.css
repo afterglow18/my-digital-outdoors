@@ -63,6 +63,10 @@
 :root {
   --app-font-sans: 'Outfit', sans-serif;
   --app-font-display: 'Syne', sans-serif;
+
+  /* Bottom nav height — consumed by wardrobe/generate containers.
+     Set to 0 on iPad/desktop where the sidebar replaces the bottom bar. */
+  --bottom-nav-h: 90px;
   
   /* Garage Palette: Warm Tan, Leather Brown, Cream, Black */
   --background: 40 30% 97%; /* Cream */
@@ -106,6 +110,13 @@
   --shadow-lg: 12px 12px 0px 0px hsl(0 0% 9%);
   --shadow-xl: 16px 16px 0px 0px hsl(0 0% 9%);
   --shadow-2xl: 20px 20px 0px 0px hsl(0 0% 9%);
+}
+
+/* iPad & desktop: sidebar replaces bottom nav, so no bottom offset needed */
+@media (min-width: 768px) {
+  :root {
+    --bottom-nav-h: 0px;
+  }
 }
 
 .dark {

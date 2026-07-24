@@ -238,7 +238,7 @@ export default function GeneratePage() {
       style={{
         position: "relative",
         width: "100%",
-        height: `calc(100dvh - ${NAV_H}px)`,
+        height: "calc(100dvh - var(--bottom-nav-h, 90px))",
         overflow: "hidden",
         background: "#C8B9A2",
       }}

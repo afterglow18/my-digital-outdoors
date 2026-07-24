@@ -158,9 +158,10 @@ export default function AccountPage() {
   return (
     <>
     <div
-      className="min-h-full flex flex-col px-4 pb-10"
+      className="min-h-full flex flex-col px-4 pb-10 md:px-8"
       style={{ paddingTop: "max(2rem, env(safe-area-inset-top))", background: "#F5F0E8" }}
     >
+      <div className="w-full max-w-2xl mx-auto flex flex-col flex-1">
       {/* Page title */}
       <header className="mb-5">
         <h1 className="font-display font-bold text-4xl uppercase tracking-tighter leading-none">
@@ -326,6 +327,7 @@ export default function AccountPage() {
         </Card>
 
       </div>
+    </div>{/* /max-w-2xl wrapper */}
     </div>
 
     <AnimatePresence>
