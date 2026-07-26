@@ -123,15 +123,16 @@ interface Props {
 
 export function QuickAddSheet({ open, onOpenChange, category, existingCount, onCreated }: Props) {
   // ── State per spec ────────────────────────────────────────────────────────
-  const [phase,        setPhase]        = useState<Phase>("pick");
-  const [errorMsg,     setErrorMsg]     = useState<string | null>(null);
-  const [originalBlob, setOriginalBlob] = useState<Blob | null>(null);
-  const [originalUrl,  setOriginalUrl]  = useState<string | null>(null);
-  const [cleanedBlob,  setCleanedBlob]  = useState<Blob | null>(null);
-  const [cleanedUrl,   setCleanedUrl]   = useState<string | null>(null);
-  const [bgProcessing, setBgProcessing] = useState(false);
-  const [bgFailed,     setBgFailed]     = useState(false);
-  const [selected,     setSelected]     = useState<"original" | "cleaned">("original");
+  const [phase,          setPhase]          = useState<Phase>("pick");
+  const [errorMsg,       setErrorMsg]       = useState<string | null>(null);
+  const [originalBlob,   setOriginalBlob]   = useState<Blob | null>(null);
+  const [originalUrl,    setOriginalUrl]    = useState<string | null>(null);
+  const [cleanedBlob,    setCleanedBlob]    = useState<Blob | null>(null);
+  const [cleanedUrl,     setCleanedUrl]     = useState<string | null>(null);
+  const [bgProcessing,   setBgProcessing]   = useState(false);
+  const [bgFailed,       setBgFailed]       = useState(false);
+  const [selected,       setSelected]       = useState<"original" | "cleaned">("original");
+  const [batchProgress,  setBatchProgress]  = useState<{ current: number; total: number } | null>(null);
 
   // Each photo bumps this counter. Every async step checks it before writing
   // state — prevents a slow first photo from clobbering a fast second one.
@@ -243,9 +244,57 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount, onC
     }
   }, [selected, cleanedBlob, originalBlob, category, existingCount, createItem, queryClient, onCreated, handleClose]);
 
+  // ── Batch save (multiple files — skips comparison, saves directly) ────────
+  const handleBatch = useCallback(async (files: File[]) => {
+    setErrorMsg(null);
+    setPhase("uploading");
+    setBatchProgress({ current: 0, total: files.length });
+
+    let failed = 0;
+    for (let i = 0; i < files.length; i++) {
+      setBatchProgress({ current: i + 1, total: files.length });
+      try {
+        const jpeg       = await encodeForUpload(files[i]);
+        const storageUrl = await toStorageDataUrl(jpeg);
+        const label      = CATEGORY_LABELS[category];
+        const n          = existingCount + i + 1;
+        const autoName   = n === 1 ? label : `${label} ${n}`;
+        await new Promise<void>((resolve, reject) => {
+          createItem.mutate(
+            { data: { name: autoName, category, imageObjectPath: storageUrl } },
+            {
+              onSuccess: (createdItem) => {
+                queryClient.invalidateQueries({ queryKey: getListClothingQueryKey() });
+                queryClient.invalidateQueries({ queryKey: getWardrobeStatsQueryKey() });
+                if (onCreated) onCreated(createdItem);
+                resolve();
+              },
+              onError: reject,
+            },
+          );
+        });
+      } catch (err) {
+        console.error("Batch upload failed for file", i, err);
+        failed++;
+      }
+    }
+
+    setBatchProgress(null);
+    if (failed > 0) {
+      setErrorMsg(`${failed} photo${failed > 1 ? "s" : ""} could not be saved. Please try again.`);
+      setPhase("pick");
+    } else {
+      handleClose();
+    }
+  }, [category, existingCount, createItem, queryClient, onCreated, handleClose]);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) handleFile(file);
+    const files = Array.from(e.target.files ?? []);
+    if (files.length === 1) {
+      handleFile(files[0]);   // → comparison flow
+    } else if (files.length > 1) {
+      handleBatch(files);     // → batch save, no comparison
+    }
     e.target.value = "";
   };
 
@@ -324,6 +373,11 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount, onC
                 </span>
               </button>
             </div>
+
+            {/* Multi-select hint */}
+            <p className="text-center text-xs text-black/40 font-medium -mt-2">
+              Select one photo to preview &amp; remove background, or select multiple to save all at once.
+            </p>
 
             {/* What to add */}
             {CATEGORY_EXAMPLES[category] && (
@@ -509,14 +563,18 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount, onC
             </div>
             <div className="text-center">
               <p className="font-display font-bold text-2xl uppercase tracking-tight">Saving…</p>
-              <p className="text-sm text-muted-foreground mt-1">Adding to your kit.</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                {batchProgress && batchProgress.total > 1
+                  ? `Photo ${batchProgress.current} of ${batchProgress.total}`
+                  : "Adding to your kit."}
+              </p>
             </div>
           </div>
         )}
 
       </div>
 
-      {/* Hidden inputs — single file only (comparison requires one photo at a time) */}
+      {/* Camera — single shot, goes through comparison flow */}
       <input
         ref={cameraInputRef}
         type="file"
@@ -525,10 +583,12 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount, onC
         className="hidden"
         onChange={handleInputChange}
       />
+      {/* Gallery — supports multiple; 1 file → comparison, 2+ → batch save */}
       <input
         ref={galleryInputRef}
         type="file"
         accept="image/*"
+        multiple
         className="hidden"
         onChange={handleInputChange}
       />
