@@ -214,22 +214,35 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
     );
   };
 
+  // Generation counter — incremented each time a new removal starts so a slow
+  // result from a cancelled run can't overwrite a choice the user already made.
+  const bgGenRef = React.useRef(0);
+
   // ── Background removal handlers ──────────────────────────────────────────
   const handleRemoveBg = useCallback(async () => {
     if (!item?.imageObjectPath) return;
-    setBgRemoving(true);
     setBgFailed(false);
+    setBgPreviewDUrl(null);          // clear any prior result
+    setShowBgSheet(true);            // open immediately — user can pick Original right now
+    setBgRemoving(true);
+
+    const gen = ++bgGenRef.current;
+
     try {
-      // Run removal against the currently-displayed image (may be a prior cleaned version)
       const source        = localImageUrl ?? item.imageObjectPath;
       const resultDataUrl = await removeBackground(source);
+
+      // Discard if the user already saved (gen was bumped) or closed the sheet
+      if (gen !== bgGenRef.current) return;
+
       setBgPreviewDUrl(resultDataUrl);
-      setShowBgSheet(true);
     } catch (err) {
+      if (gen !== bgGenRef.current) return;
       console.warn("BG removal failed:", err);
       setBgFailed(true);
+      setShowBgSheet(false);         // close sheet so "Failed — tap to retry" shows instead
     } finally {
-      setBgRemoving(false);
+      if (gen === bgGenRef.current) setBgRemoving(false);
     }
   }, [item?.imageObjectPath, localImageUrl]);
 
@@ -239,6 +252,7 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
    * Never await — the spec requires no flash back to the old photo.
    */
   const handleBgSave = useCallback((chosenUrl: string) => {
+    bgGenRef.current++;            // ← invalidate any in-flight removal result
     setLocalImageUrl(chosenUrl);   // ← optimistic: photo updates on screen right now
     setShowBgSheet(false);
     setBgPreviewDUrl(null);
