@@ -9,6 +9,7 @@ import {
   X, Heart, Trash2, Save, ChevronDown, Loader2, Wand2,
 } from "lucide-react";
 import { removeBackground } from "@/lib/backgroundRemoval";
+import { BgRemovalSheet } from "./BgRemovalSheet";
 import {
   type ClothingItem,
   type ClothingItemUpdateCategory,
@@ -154,9 +155,11 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
 
   // ── Background removal state ──────────────────────────────────────────────
   const [bgRemoving,    setBgRemoving]    = useState(false);
-  const [bgPreviewUrl,  setBgPreviewUrl]  = useState<string | null>(null);
   const [bgPreviewDUrl, setBgPreviewDUrl] = useState<string | null>(null);
   const [bgFailed,      setBgFailed]      = useState(false);
+  const [showBgSheet,   setShowBgSheet]   = useState(false);
+  /** Optimistic image URL — set immediately on user confirm, before DB write finishes. */
+  const [localImageUrl, setLocalImageUrl] = useState<string | null>(null);
 
   const updateItem  = useUpdateClothingItem();
   const deleteItem  = useDeleteClothingItem();
@@ -167,9 +170,10 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
     if (item) setForm(toForm(item));
     setShowDeleteConfirm(false);
     setBgRemoving(false);
-    setBgPreviewUrl(null);
     setBgPreviewDUrl(null);
     setBgFailed(false);
+    setShowBgSheet(false);
+    setLocalImageUrl(null);
   }, [item?.id]);
 
   if (!item || !form) return null;
@@ -216,40 +220,39 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
     setBgRemoving(true);
     setBgFailed(false);
     try {
-      const resultDataUrl = await removeBackground(item.imageObjectPath);
-      const blob = await fetch(resultDataUrl).then((r) => r.blob());
-      setBgPreviewUrl(URL.createObjectURL(blob));
+      // Run removal against the currently-displayed image (may be a prior cleaned version)
+      const source        = localImageUrl ?? item.imageObjectPath;
+      const resultDataUrl = await removeBackground(source);
       setBgPreviewDUrl(resultDataUrl);
+      setShowBgSheet(true);
     } catch (err) {
       console.warn("BG removal failed:", err);
       setBgFailed(true);
     } finally {
       setBgRemoving(false);
     }
-  }, [item?.imageObjectPath]);
+  }, [item?.imageObjectPath, localImageUrl]);
 
-  const handleApplyBg = useCallback(() => {
-    if (!bgPreviewDUrl) return;
+  /**
+   * Called by BgRemovalSheet when the user confirms a version.
+   * Update displayed image immediately (optimistic), then write to DB in the background.
+   * Never await — the spec requires no flash back to the old photo.
+   */
+  const handleBgSave = useCallback((chosenUrl: string) => {
+    setLocalImageUrl(chosenUrl);   // ← optimistic: photo updates on screen right now
+    setShowBgSheet(false);
+    setBgPreviewDUrl(null);
     updateItem.mutate(
-      { id: item.id, data: { imageObjectPath: bgPreviewDUrl } },
+      { id: item.id, data: { imageObjectPath: chosenUrl } },
       {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getListClothingQueryKey() });
           queryClient.invalidateQueries({ queryKey: getListOutfitsQueryKey() });
           queryClient.invalidateQueries({ queryKey: getWardrobeStatsQueryKey() });
-          setBgPreviewUrl(null);
-          setBgPreviewDUrl(null);
-          onClose();
         },
       }
     );
-  }, [bgPreviewDUrl, item?.id, updateItem, queryClient, onClose]);
-
-  const handleDiscardBg = useCallback(() => {
-    setBgPreviewUrl(null);
-    setBgPreviewDUrl(null);
-    setBgFailed(false);
-  }, []);
+  }, [item?.id, updateItem, queryClient]);
 
   const handleDelete = () => {
     deleteItem.mutate(
@@ -267,6 +270,7 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
   };
 
   return (
+    <>
     <motion.div
       initial={{ opacity: 0, y: "100%" }}
       animate={{ opacity: 1, y: 0 }}
@@ -325,91 +329,38 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
       {/* ── Photo ── */}
       {item.imageObjectPath && (
         <div className="flex-shrink-0 border-b-2 border-black">
-          {/* Image display */}
-          {bgPreviewUrl ? (
-            /* Side-by-side comparison */
-            <div className="flex h-52">
-              <div className="flex-1 relative bg-black">
-                <img
-                  src={getImageUrl(item.imageObjectPath)!}
-                  alt="Original"
-                  className="w-full h-full object-contain"
-                />
-                <span className="absolute bottom-1 left-0 right-0 text-center text-[10px]
-                                 font-bold uppercase tracking-wider text-white/60">
-                  Original
-                </span>
+          {/* Image — uses localImageUrl optimistically once user has confirmed a version */}
+          <div
+            className="w-full h-52 relative"
+            style={{
+              backgroundImage: "repeating-conic-gradient(#e5e7eb 0% 25%, white 0% 50%)",
+              backgroundSize: "16px 16px",
+            }}
+          >
+            <img
+              src={localImageUrl ?? getImageUrl(item.imageObjectPath)!}
+              alt={item.name}
+              className="w-full h-full object-contain"
+            />
+            {bgRemoving && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/50">
+                <Loader2 className="w-8 h-8 animate-spin text-white" />
+                <p className="text-white font-bold text-xs uppercase tracking-wider">
+                  Removing background…
+                </p>
+                <p className="text-white/60 text-[11px]">This may take a moment</p>
               </div>
-              <div className="w-[2px] bg-black" />
-              <div
-                className="flex-1 relative"
-                style={{
-                  backgroundImage: "repeating-conic-gradient(#d1d5db 0% 25%, white 0% 50%)",
-                  backgroundSize: "12px 12px",
-                }}
-              >
-                <img
-                  src={bgPreviewUrl}
-                  alt="Cleaned"
-                  className="w-full h-full object-contain"
-                />
-                <span className="absolute bottom-1 left-0 right-0 text-center text-[10px]
-                                 font-bold uppercase tracking-wider text-black/50">
-                  Cleaned ✨
-                </span>
-              </div>
-            </div>
-          ) : (
-            /* Single image with optional processing overlay */
-            <div
-              className="w-full h-52 relative"
-              style={{
-                backgroundImage: "repeating-conic-gradient(#e5e7eb 0% 25%, white 0% 50%)",
-                backgroundSize: "16px 16px",
-              }}
-            >
-              <img
-                src={getImageUrl(item.imageObjectPath)!}
-                alt={item.name}
-                className="w-full h-full object-contain"
-              />
-              {bgRemoving && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/50">
-                  <Loader2 className="w-8 h-8 animate-spin text-white" />
-                  <p className="text-white font-bold text-xs uppercase tracking-wider">
-                    Removing background…
-                  </p>
-                  <p className="text-white/60 text-[11px]">This may take a moment</p>
-                </div>
-              )}
-            </div>
-          )}
+            )}
+          </div>
 
-          {/* Action bar below photo */}
+          {/* "Clean Up Photo" action bar */}
           <div className="flex border-t-2 border-black">
-            {bgPreviewUrl ? (
-              <>
-                <button
-                  onClick={handleDiscardBg}
-                  className="flex-1 py-2.5 text-[11px] font-bold uppercase tracking-wider
-                             border-r-2 border-black active:bg-muted transition-colors"
-                >
-                  Keep Original
-                </button>
-                <button
-                  onClick={handleApplyBg}
-                  disabled={updateItem.isPending}
-                  className="flex-1 py-2.5 text-[11px] font-bold uppercase tracking-wider
-                             bg-primary active:opacity-80 transition-opacity disabled:opacity-50"
-                >
-                  {updateItem.isPending ? "Saving…" : "Use Cleaned ✨"}
-                </button>
-              </>
-            ) : bgFailed ? (
+            {bgFailed ? (
               <button
                 onClick={handleRemoveBg}
                 className="w-full py-2.5 flex items-center justify-center gap-2
-                           text-[11px] font-bold uppercase tracking-wider text-red-600"
+                           text-[11px] font-bold uppercase tracking-wider text-red-600
+                           active:bg-muted transition-colors"
               >
                 <Wand2 className="w-3.5 h-3.5" />
                 Failed — tap to retry
@@ -423,7 +374,7 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
                            disabled:opacity-40 active:bg-muted transition-colors"
               >
                 <Wand2 className="w-3.5 h-3.5" />
-                {bgRemoving ? "Removing background…" : "Remove Background ✨"}
+                {bgRemoving ? "Removing background…" : "Clean Up Photo ✨"}
               </button>
             )}
           </div>
@@ -552,5 +503,18 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
         )}
       </div>
     </motion.div>
+
+    {/* ── Full-screen compare overlay — slides over the detail sheet ── */}
+    <AnimatePresence>
+      {showBgSheet && bgPreviewDUrl && (
+        <BgRemovalSheet
+          originalUrl={localImageUrl ?? item.imageObjectPath ?? ""}
+          cleanedUrl={bgPreviewDUrl}
+          onSave={handleBgSave}
+          onClose={() => setShowBgSheet(false)}
+        />
+      )}
+    </AnimatePresence>
+    </>
   );
 }
