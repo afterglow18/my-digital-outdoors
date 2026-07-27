@@ -181,6 +181,49 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
     setLocalImageUrl(null);
   }, [item?.id]);
 
+  // ── Background removal handlers (must be above early return — Rules of Hooks) ──
+  const handleRemoveBg = useCallback(async () => {
+    if (!item?.imageObjectPath) return;
+    setBgFailed(false);
+    setBgPreviewDUrl(null);
+    setShowBgSheet(true);
+    setBgRemoving(true);
+
+    const gen = ++bgGenRef.current;
+
+    try {
+      const source        = localImageUrl ?? item.imageObjectPath;
+      const resultDataUrl = await removeBackground(source);
+      if (gen !== bgGenRef.current) return;
+      setBgPreviewDUrl(resultDataUrl);
+    } catch (err) {
+      if (gen !== bgGenRef.current) return;
+      console.warn("BG removal failed:", err);
+      setBgFailed(true);
+      setShowBgSheet(false);
+    } finally {
+      if (gen === bgGenRef.current) setBgRemoving(false);
+    }
+  }, [item?.imageObjectPath, localImageUrl]);
+
+  const handleBgSave = useCallback((chosenUrl: string) => {
+    bgGenRef.current++;
+    setLocalImageUrl(chosenUrl);
+    setShowBgSheet(false);
+    setBgPreviewDUrl(null);
+    updateItem.mutate(
+      { id: item?.id ?? 0, data: { imageObjectPath: chosenUrl } },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getListClothingQueryKey() });
+          queryClient.invalidateQueries({ queryKey: getListOutfitsQueryKey() });
+          queryClient.invalidateQueries({ queryKey: getWardrobeStatsQueryKey() });
+        },
+      }
+    );
+  }, [item?.id, updateItem, queryClient]);
+
+  // ── Early return — all hooks must be above this line ─────────────────────
   if (!item || !form) return null;
 
   const dirty = isDirty(form, item);
@@ -193,8 +236,6 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
       {
         id: item.id,
         data: {
-          // Always send every editable field so the backend can clear it when empty.
-          // Backend converts "" → null in DB.
           name:          form.name.trim() || item.name,
           brand:         form.brand.trim(),
           color:         form.color.trim(),
@@ -218,56 +259,6 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
       }
     );
   };
-
-  // ── Background removal handlers ──────────────────────────────────────────
-  const handleRemoveBg = useCallback(async () => {
-    if (!item?.imageObjectPath) return;
-    setBgFailed(false);
-    setBgPreviewDUrl(null);          // clear any prior result
-    setShowBgSheet(true);            // open immediately — user can pick Original right now
-    setBgRemoving(true);
-
-    const gen = ++bgGenRef.current;
-
-    try {
-      const source        = localImageUrl ?? item.imageObjectPath;
-      const resultDataUrl = await removeBackground(source);
-
-      // Discard if the user already saved (gen was bumped) or closed the sheet
-      if (gen !== bgGenRef.current) return;
-
-      setBgPreviewDUrl(resultDataUrl);
-    } catch (err) {
-      if (gen !== bgGenRef.current) return;
-      console.warn("BG removal failed:", err);
-      setBgFailed(true);
-      setShowBgSheet(false);         // close sheet so "Failed — tap to retry" shows instead
-    } finally {
-      if (gen === bgGenRef.current) setBgRemoving(false);
-    }
-  }, [item?.imageObjectPath, localImageUrl]);
-
-  /**
-   * Called by BgRemovalSheet when the user confirms a version.
-   * Update displayed image immediately (optimistic), then write to DB in the background.
-   * Never await — the spec requires no flash back to the old photo.
-   */
-  const handleBgSave = useCallback((chosenUrl: string) => {
-    bgGenRef.current++;            // ← invalidate any in-flight removal result
-    setLocalImageUrl(chosenUrl);   // ← optimistic: photo updates on screen right now
-    setShowBgSheet(false);
-    setBgPreviewDUrl(null);
-    updateItem.mutate(
-      { id: item.id, data: { imageObjectPath: chosenUrl } },
-      {
-        onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: getListClothingQueryKey() });
-          queryClient.invalidateQueries({ queryKey: getListOutfitsQueryKey() });
-          queryClient.invalidateQueries({ queryKey: getWardrobeStatsQueryKey() });
-        },
-      }
-    );
-  }, [item?.id, updateItem, queryClient]);
 
   const handleDelete = () => {
     deleteItem.mutate(
