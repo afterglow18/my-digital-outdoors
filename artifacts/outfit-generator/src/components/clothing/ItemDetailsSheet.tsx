@@ -165,6 +165,11 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
   const deleteItem  = useDeleteClothingItem();
   const queryClient = useQueryClient();
 
+  // Generation counter — must be above the early return to satisfy Rules of Hooks.
+  // Incremented each time a new removal starts so a stale result can't overwrite
+  // a choice the user already made.
+  const bgGenRef = React.useRef(0);
+
   // Reset form + bg state whenever item changes
   useEffect(() => {
     if (item) setForm(toForm(item));
@@ -213,10 +218,6 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
       }
     );
   };
-
-  // Generation counter — incremented each time a new removal starts so a slow
-  // result from a cancelled run can't overwrite a choice the user already made.
-  const bgGenRef = React.useRef(0);
 
   // ── Background removal handlers ──────────────────────────────────────────
   const handleRemoveBg = useCallback(async () => {
