@@ -209,12 +209,12 @@ export default function WardrobePage() {
         width: "100%",
         height: "calc(100dvh - var(--bottom-nav-h, 90px))",
         overflow: "hidden",
-        background: "#C8B9A2",
+        background: "#6B4A2A",
       }}
     >
       {/* ── Background image — object-fit:cover avoids WebKit negative-left clipping bug ── */}
       <img
-        src="/garage-open-bg.jpg"
+        src="/shelves-bg.png"
         alt="My Digital Outdoors"
         style={{
           position: "absolute",
