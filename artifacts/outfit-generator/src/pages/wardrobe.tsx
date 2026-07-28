@@ -250,7 +250,8 @@ export default function WardrobePage() {
               letterSpacing: "0.08em",
               whiteSpace: "nowrap",
               textTransform: "uppercase",
-              color: "#1a0800",
+              color: "#EDD9B0",
+              textShadow: "0 2px 10px rgba(0,0,0,0.75), 0 1px 3px rgba(0,0,0,0.95)",
               lineHeight: 1.1,
             }}>
               MY DIGITAL OUTDOORS
@@ -325,7 +326,8 @@ export default function WardrobePage() {
                     fontSize: Math.max(9, pH(ir, 0.013)),
                     fontWeight: 800,
                     letterSpacing: "0.12em",
-                    color: "#3A2210",
+                    color: "#EDD9B0",
+                    textShadow: "0 1px 6px rgba(0,0,0,0.8)",
                     fontFamily: "var(--font-display)",
                     textTransform: "uppercase",
                   }}>

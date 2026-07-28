@@ -43,7 +43,7 @@ function Field({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-[10px] font-bold uppercase tracking-widest text-black/40">
+      <label className="text-[10px] font-bold uppercase tracking-widest text-[#6B4A2A]/70">
         {label}
       </label>
       <input
@@ -51,9 +51,9 @@ function Field({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder ?? label}
-        className="w-full border-2 border-black rounded-lg px-3 py-2 text-sm font-medium
-                   bg-white focus:outline-none focus:ring-2 focus:ring-primary
-                   placeholder:font-normal placeholder:text-black/25"
+        className="w-full border border-[#3A2210]/30 rounded-lg px-3 py-2 text-sm font-medium
+                   bg-[#FFFDF8] text-[#2A1206] focus:outline-none focus:ring-2 focus:ring-primary
+                   placeholder:font-normal placeholder:text-[#6B4A2A]/35"
       />
     </div>
   );
@@ -72,15 +72,15 @@ function SelectField({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-[10px] font-bold uppercase tracking-widest text-black/40">
+      <label className="text-[10px] font-bold uppercase tracking-widest text-[#6B4A2A]/70">
         {label}
       </label>
       <div className="relative">
         <select
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full appearance-none border-2 border-black rounded-lg px-3 py-2 pr-8
-                     text-sm font-medium bg-white focus:outline-none focus:ring-2 focus:ring-primary
+          className="w-full appearance-none border border-[#3A2210]/30 rounded-lg px-3 py-2 pr-8
+                     text-sm font-medium bg-[#FFFDF8] text-[#2A1206] focus:outline-none focus:ring-2 focus:ring-primary
                      cursor-pointer"
         >
           {options.map((o) => (
@@ -282,13 +282,13 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: "100%" }}
       transition={{ type: "spring", damping: 28, stiffness: 240 }}
-      className="fixed inset-0 z-[65] flex flex-col max-w-md mx-auto bg-[#f9f4ee] overflow-y-auto"
+      className="fixed inset-0 z-[65] flex flex-col max-w-md mx-auto bg-[#F5EFE4] overflow-y-auto"
     >
       {/* ── Header ── */}
       <div className="sticky top-0 z-10 flex items-center justify-between px-4
-                      bg-white border-b-2 border-black flex-shrink-0"
+                      bg-[#FAF6EE] border-b border-[#3A2210]/20 flex-shrink-0"
         style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))", paddingBottom: "0.75rem" }}>
-        <h2 className="font-display font-bold text-xl uppercase tracking-tight">
+        <h2 className="font-display font-bold text-xl uppercase tracking-tight text-[#3A2210]">
           Item Details
         </h2>
         <div className="flex items-center gap-2">
@@ -308,10 +308,10 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
                 }
               );
             }}
-            className={`w-9 h-9 border-2 border-black rounded-full flex items-center justify-center transition-all
+            className={`w-9 h-9 border rounded-full flex items-center justify-center transition-all
                         ${form.isFavorite
-                          ? "bg-red-500 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
-                          : "bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"}`}
+                          ? "bg-red-400 border-red-500/60 shadow-[2px_2px_0px_0px_rgba(58,34,16,0.25)]"
+                          : "bg-[#FAF6EE] border-[#3A2210]/30 shadow-[2px_2px_0px_0px_rgba(58,34,16,0.18)]"}`}
             title="Favourite"
           >
             <Heart
@@ -323,8 +323,8 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
           {/* Close */}
           <button
             onClick={onClose}
-            className="w-9 h-9 border-2 border-black rounded-full flex items-center justify-center
-                       bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]
+            className="w-9 h-9 border rounded-full flex items-center justify-center
+                       bg-[#FAF6EE] border-[#3A2210]/30 shadow-[2px_2px_0px_0px_rgba(58,34,16,0.18)]
                        active:translate-y-0.5 active:translate-x-0.5 active:shadow-none transition-all"
           >
             <X className="w-4 h-4" />
@@ -334,7 +334,7 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
 
       {/* ── Photo ── */}
       {item.imageObjectPath && (
-        <div className="flex-shrink-0 border-b-2 border-black">
+        <div className="flex-shrink-0 border-b border-[#3A2210]/20">
           {/* Image — uses localImageUrl optimistically once user has confirmed a version */}
           <div
             className="w-full h-52 relative"
@@ -360,7 +360,7 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
           </div>
 
           {/* "Clean Up Photo" action bar */}
-          <div className="flex border-t-2 border-black">
+          <div className="flex border-t border-[#3A2210]/15">
             {bgFailed ? (
               <button
                 onClick={handleRemoveBg}
@@ -421,7 +421,7 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
 
         {/* Notes */}
         <div className="flex flex-col gap-1">
-          <label className="text-[10px] font-bold uppercase tracking-widest text-black/40">
+          <label className="text-[10px] font-bold uppercase tracking-widest text-[#6B4A2A]/70">
             Notes
           </label>
           <textarea
@@ -429,9 +429,9 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
             onChange={(e) => patch("notes")(e.target.value)}
             placeholder="Anything worth remembering…"
             rows={3}
-            className="w-full border-2 border-black rounded-lg px-3 py-2 text-sm font-medium
-                       bg-white focus:outline-none focus:ring-2 focus:ring-primary resize-none
-                       placeholder:font-normal placeholder:text-black/25"
+            className="w-full border border-[#3A2210]/30 rounded-lg px-3 py-2 text-sm font-medium
+                       bg-[#FFFDF8] text-[#2A1206] focus:outline-none focus:ring-2 focus:ring-primary resize-none
+                       placeholder:font-normal placeholder:text-[#6B4A2A]/35"
           />
         </div>
 
@@ -444,8 +444,8 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
             options={CATEGORY_OPTIONS}
           />
           <div className="flex flex-col gap-1 opacity-50 pointer-events-none">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-black/40">Times Worn</span>
-            <div className="border-2 border-black/20 rounded-lg px-3 py-2 text-sm font-medium bg-white/50">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-[#6B4A2A]/70">Times Worn</span>
+            <div className="border border-[#3A2210]/20 rounded-lg px-3 py-2 text-sm font-medium bg-[#FFFDF8]/60 text-[#2A1206]">
               {item.timesWorn ?? 0}
             </div>
           </div>
@@ -454,7 +454,7 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
       </div>
 
       {/* ── Footer actions ── */}
-      <div className="sticky bottom-0 px-4 py-4 bg-white border-t-2 border-black flex-shrink-0 flex flex-col gap-2">
+      <div className="sticky bottom-0 px-4 py-4 bg-[#FAF6EE] border-t border-[#3A2210]/20 flex-shrink-0 flex flex-col gap-2">
 
         {/* Save (only when dirty) */}
         <AnimatePresence>
@@ -478,8 +478,8 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
           <button
             onClick={() => setShowDeleteConfirm(true)}
             className="w-full py-3 rounded-xl flex items-center justify-center gap-2 text-sm
-                       font-bold uppercase border-2 border-black/20 text-black/35
-                       hover:border-red-500 hover:text-red-600 transition-all"
+                       font-bold uppercase border border-[#3A2210]/20 text-[#6B4A2A]/50
+                       hover:border-red-400 hover:text-red-600 transition-all"
           >
             <Trash2 className="w-4 h-4" />
             Delete from Kit Forever
@@ -488,8 +488,8 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
           <div className="flex gap-2">
             <button
               onClick={() => setShowDeleteConfirm(false)}
-              className="flex-1 py-3 rounded-xl text-sm font-bold uppercase border-2 border-black bg-white
-                         shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]
+              className="flex-1 py-3 rounded-xl text-sm font-bold uppercase border border-[#3A2210]/40 bg-[#FAF6EE] text-[#3A2210]
+                         shadow-[2px_2px_0px_0px_rgba(58,34,16,0.20)]
                          active:translate-y-0.5 active:translate-x-0.5 active:shadow-none transition-all"
             >
               Cancel
