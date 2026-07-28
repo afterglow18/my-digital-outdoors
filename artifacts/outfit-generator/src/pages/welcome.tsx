@@ -59,7 +59,7 @@ function DoorFace() {
       {/* ── App title ── */}
       <div style={{
         position: "absolute",
-        top: "16%",
+        top: "23%",
         left: 0, right: 0,
         textAlign: "center",
         pointerEvents: "none",
