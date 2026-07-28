@@ -280,7 +280,7 @@ export default function WelcomePage({ onEnter }: Props) {
             whiteSpace: "nowrap",
           }}
         >
-          Open Cabin
+          Enter Cabin
         </motion.button>
       </motion.div>
 
