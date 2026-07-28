@@ -1,7 +1,7 @@
 /**
  * WelcomePage — Cabin door splash screen.
  *
- * IDLE    : Full-screen closed wooden cabin door. Title + "Open Cabin" button.
+ * IDLE    : Full-screen closed wooden cabin door. Welcome sign + "tap to enter".
  * OPENING : Door swings open on left hinge (rotateY 0 → -110°, 0.88 s).
  *           Hero image (hero-bg.png) is revealed behind.
  * EXITING : Whole screen fades out → onEnter().
@@ -230,59 +230,76 @@ export default function WelcomePage({ onEnter }: Props) {
           style={{
             position: "absolute", inset: 0,
             transformOrigin: "left center",
+            cursor: doorOpen ? "default" : "pointer",
           }}
           initial={false}
           animate={{ rotateY: doorOpen ? -110 : 0 }}
           transition={{ duration: 0.88, ease: [0.25, 0.46, 0.45, 0.94] }}
+          onClick={handleOpen}
         >
           <DoorFace />
+
+          {/* ── Welcome sign — lower panel area ── */}
+          <motion.div
+            animate={{ opacity: doorOpen ? 0 : 1 }}
+            transition={{ duration: 0.2 }}
+            style={{
+              position: "absolute",
+              left: "50%", top: "69%",
+              transform: "translateX(-50%)",
+              display: "flex", flexDirection: "column",
+              alignItems: "center", gap: 10,
+              pointerEvents: "none",
+            }}
+          >
+            {/* Sign plaque */}
+            <div style={{
+              position: "relative",
+              background: "linear-gradient(175deg, #7A4A1E 0%, #3E1E08 55%, #5A3218 100%)",
+              border: "3px solid #2A1206",
+              borderRadius: 5,
+              padding: "10px 28px",
+              boxShadow: "0 4px 14px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.06), inset 0 -1px 0 rgba(0,0,0,0.3)",
+            }}>
+              {/* Plank seam across sign */}
+              <div style={{
+                position: "absolute", left: 0, right: 0, top: "50%",
+                height: 1, background: "rgba(0,0,0,0.18)", pointerEvents: "none",
+              }} />
+              {/* Nail heads */}
+              {([["10%","20%"],["90%","20%"],["10%","80%"],["90%","80%"]] as const).map(([l,t],i) => (
+                <div key={i} style={{
+                  position: "absolute", left: l, top: t,
+                  transform: "translate(-50%,-50%)",
+                  width: 5, height: 5, borderRadius: "50%",
+                  background: "radial-gradient(circle at 35% 35%, #888, #2A2A2A)",
+                  border: "1px solid #111",
+                }} />
+              ))}
+              <div style={{
+                fontFamily: "var(--font-display, serif)",
+                fontWeight: 900, fontSize: "clamp(18px, 5vw, 26px)",
+                letterSpacing: "0.18em",
+                color: "#EDD9A0",
+                textShadow: "0 1px 6px rgba(0,0,0,0.8), 0 0 1px rgba(0,0,0,0.9)",
+                position: "relative", zIndex: 1,
+              }}>
+                WELCOME
+              </div>
+            </div>
+
+            {/* Tap to enter */}
+            <div style={{
+              fontSize: 11, fontWeight: 500,
+              letterSpacing: "0.2em",
+              textTransform: "uppercase" as const,
+              color: "rgba(232,210,168,0.42)",
+            }}>
+              tap to enter
+            </div>
+          </motion.div>
         </motion.div>
       </div>
-
-      {/* ── Bottom CTA — fades + slides down as door opens ── */}
-      <motion.div
-        animate={{ opacity: doorOpen ? 0 : 1, y: doorOpen ? 14 : 0 }}
-        transition={{ duration: 0.28 }}
-        style={{
-          position: "fixed",
-          bottom: "calc(env(safe-area-inset-bottom) + 54px)",
-          left: 0, right: 0,
-          display: "flex", flexDirection: "column",
-          alignItems: "center", gap: 8,
-          zIndex: 20,
-          pointerEvents: doorOpen ? "none" : "auto",
-        }}
-      >
-        <p style={{
-          margin: 0,
-          fontSize: 11, fontWeight: 500,
-          letterSpacing: "0.24em",
-          textTransform: "uppercase",
-          color: "rgba(245,237,216,0.38)",
-        }}>
-          your outdoor kit collection
-        </p>
-        <motion.button
-          onClick={handleOpen}
-          whileTap={{ scale: 0.95 }}
-          style={{
-            marginTop: 6,
-            fontFamily: "var(--font-display, sans-serif)",
-            fontWeight: 800, fontSize: 16,
-            letterSpacing: "0.03em",
-            color: "#2A1608",
-            background: "linear-gradient(to bottom, #EED9A8, #C49448)",
-            border: "1.5px solid #A07030",
-            borderRadius: 100,
-            padding: "14px 44px",
-            cursor: "pointer",
-            boxShadow: "0 4px 24px rgba(100,60,20,0.50), 2px 2px 0 rgba(0,0,0,0.55)",
-            whiteSpace: "nowrap",
-          }}
-        >
-          Enter Cabin
-        </motion.button>
-      </motion.div>
 
       {/* ── Footer links ── */}
       <div style={{
