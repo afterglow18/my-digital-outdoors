@@ -6,7 +6,7 @@
  * pages need only a one-line import change.
  */
 
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   listClothing,
   getClothingItem,
@@ -21,6 +21,8 @@ import {
   deleteOutfit,
   addItemToOutfit,
   removeItemFromOutfit,
+  getSetting,
+  setSetting,
 } from "@/lib/localDB";
 
 export type { ClothingItem, SavedOutfit } from "@/lib/db";
@@ -189,3 +191,52 @@ export type ClothingItemCategory       = "outfits" | "beauty" | "toiletries" | "
 export type ListClothingCategory        = ClothingItemCategory;
 export type ClothingItemUpdateCategory  = ClothingItemCategory;
 export type ClothingItemInputCategoryType = ClothingItemCategory;
+
+// ── Category names (user-renameable) ─────────────────────────────────────────
+
+export const CATEGORY_KEYS = ["outfits", "beauty", "toiletries", "essentials"] as const;
+export type CategoryKey = typeof CATEGORY_KEYS[number];
+
+export const DEFAULT_CATEGORY_NAMES: Record<CategoryKey, string> = {
+  outfits:    "Outfits",
+  beauty:     "Beauty",
+  toiletries: "Toiletries",
+  essentials: "Essentials",
+};
+
+export function getCategoryNamesQueryKey() {
+  return ["category-names"];
+}
+
+/** Read/write the display names for the four shelf categories. */
+export function useCategoryNames() {
+  const queryClient = useQueryClient();
+
+  const { data: names = DEFAULT_CATEGORY_NAMES } = useQuery<Record<CategoryKey, string>>({
+    queryKey: getCategoryNamesQueryKey(),
+    queryFn: async () => {
+      const result = { ...DEFAULT_CATEGORY_NAMES };
+      for (const key of CATEGORY_KEYS) {
+        const val = await getSetting(`category_name_${key}`);
+        if (val) result[key] = val;
+      }
+      return result;
+    },
+    staleTime: Infinity,
+  });
+
+  const { mutate: rename } = useMutation<void, Error, { key: CategoryKey; name: string }>({
+    mutationFn: async ({ key, name }) => {
+      const trimmed = name.trim();
+      await setSetting(
+        `category_name_${key}`,
+        trimmed || DEFAULT_CATEGORY_NAMES[key],
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: getCategoryNamesQueryKey() });
+    },
+  });
+
+  return { names, rename };
+}

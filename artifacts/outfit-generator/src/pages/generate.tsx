@@ -15,6 +15,7 @@ import React, {
 import {
   useListClothing, getListClothingQueryKey,
   useGenerateOutfit, useSaveOutfit, getListOutfitsQueryKey,
+  useCategoryNames,
   type ClothingItem,
 } from "@/hooks/useLocalDB";
 import { X } from "lucide-react";
@@ -100,6 +101,10 @@ export default function GeneratePage() {
   const [centred,    setCentred]    = useState<Partial<Record<RowKey, ClothingItem>>>({});
   const [isSaveOpen, setIsSaveOpen] = useState(false);
   const [saveName,   setSaveName]   = useState("");
+  const [editingKey, setEditingKey] = useState<RowKey | null>(null);
+  const [editDraft,  setEditDraft]  = useState("");
+
+  const { names, rename } = useCategoryNames();
 
   const rowDataRef = useRef<Record<RowKey, ClothingItem[]>>({
     outfits: [], beauty: [], toiletries: [], essentials: [],
@@ -312,13 +317,14 @@ export default function GeneratePage() {
               const btnCY  = pY(ir, lm.btnCY);
               const btnH   = Math.max(32, pH(ir, 0.045));
 
-              const label = key.toUpperCase();
+              const labelFontSize = Math.max(9, pH(ir, 0.013));
               const labelY = pY(ir, lm.btnCY + (lm.sectionTop - lm.btnCY) * 0.08);
+              const isEditing = editingKey === key;
 
               return (
                 <React.Fragment key={key}>
 
-                  {/* ── Category label ── */}
+                  {/* ── Category label — tap to rename ── */}
                   <div style={{
                     position: "absolute",
                     top: labelY,
@@ -327,18 +333,60 @@ export default function GeneratePage() {
                     transform: "translateY(-50%)",
                     zIndex: 12,
                     textAlign: "center",
-                    pointerEvents: "none",
+                    pointerEvents: "auto",
                   }}>
-                    <span style={{
-                      fontSize: Math.max(9, pH(ir, 0.013)),
-                      fontWeight: 800,
-                      letterSpacing: "0.12em",
-                      color: "#3A2210",
-                      fontFamily: "var(--font-display)",
-                      textTransform: "uppercase",
-                    }}>
-                      {label}
-                    </span>
+                    {isEditing ? (
+                      <input
+                        autoFocus
+                        value={editDraft}
+                        onChange={e => setEditDraft(e.target.value)}
+                        onBlur={() => {
+                          rename({ key, name: editDraft });
+                          setEditingKey(null);
+                        }}
+                        onKeyDown={e => {
+                          if (e.key === "Enter") { (e.target as HTMLInputElement).blur(); }
+                          if (e.key === "Escape") { setEditingKey(null); }
+                        }}
+                        style={{
+                          width: "80%",
+                          background: "rgba(255,255,255,0.85)",
+                          border: "2px solid #3A2210",
+                          borderRadius: 6,
+                          padding: "2px 6px",
+                          fontSize: labelFontSize,
+                          fontWeight: 800,
+                          letterSpacing: "0.10em",
+                          color: "#3A2210",
+                          fontFamily: "var(--font-display)",
+                          textTransform: "uppercase",
+                          textAlign: "center",
+                          outline: "none",
+                        }}
+                      />
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setEditDraft(names[key]);
+                          setEditingKey(key);
+                        }}
+                        title="Tap to rename"
+                        style={{
+                          background: "none",
+                          border: "none",
+                          cursor: "text",
+                          padding: "2px 4px",
+                          fontSize: labelFontSize,
+                          fontWeight: 800,
+                          letterSpacing: "0.12em",
+                          color: "#3A2210",
+                          fontFamily: "var(--font-display)",
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        {names[key]}
+                      </button>
+                    )}
                   </div>
 
                   {items.length > 0 ? (

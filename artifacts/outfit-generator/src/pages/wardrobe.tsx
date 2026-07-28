@@ -25,7 +25,7 @@ import { useLocation } from "wouter";
 import {
   useListClothing, getListClothingQueryKey,
   useListOutfits, getListOutfitsQueryKey,
-  useSaveOutfit,
+  useSaveOutfit, useCategoryNames,
   type ClothingItem,
 } from "@/hooks/useLocalDB";
 import { X } from "lucide-react";
@@ -124,6 +124,7 @@ export default function WardrobePage() {
   const [saveSuccess,   setSaveSuccess]   = useState(false);
 
   const saveOutfit = useSaveOutfit();
+  const { names }  = useCategoryNames();
 
   const { data: outfitsItems  = [] } = useListClothing({ category: "outfits"    }, { query: { queryKey: getListClothingQueryKey({ category: "outfits"    }) } });
   const { data: beautyItems   = [] } = useListClothing({ category: "beauty"     }, { query: { queryKey: getListClothingQueryKey({ category: "beauty"     }) } });
@@ -328,7 +329,7 @@ export default function WardrobePage() {
                     fontFamily: "var(--font-display)",
                     textTransform: "uppercase",
                   }}>
-                    {btnLabel}
+                    {names[key].toUpperCase()}
                   </span>
                 </button>
 
