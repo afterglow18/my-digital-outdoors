@@ -292,7 +292,7 @@ export default function GeneratePage() {
                   <div style={{
                     position: "absolute",
                     top: labelY,
-                    left: "57%",
+                    left: "54%",
                     width: "60%",
                     transform: "translateX(-50%) translateY(-50%)",
                     zIndex: 12,
