@@ -284,7 +284,7 @@ export default function WardrobePage() {
                     position: "absolute",
                     top: labelY,
                     left: "50%",
-                    width: "52%",
+                    width: "60%",
                     transform: "translateX(-50%) translateY(-50%)",
                     zIndex: 23,
                     textAlign: "center",
