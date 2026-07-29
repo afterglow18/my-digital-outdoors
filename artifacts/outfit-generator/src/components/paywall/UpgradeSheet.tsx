@@ -235,10 +235,6 @@ export function UpgradeSheet({ reason, onClose }: Props) {
                style={{ color: "hsl(24 100% 44%)" }}>
               Unlimited gear collections
             </p>
-            <p className="font-display font-bold uppercase text-[1.45rem] leading-[0.92] tracking-tight"
-               style={{ color: "hsl(24 100% 44%)" }}>
-              Unlimited saved outfits
-            </p>
             <p className="text-white/60 text-xs font-medium mt-1 leading-snug">
               All your gear, beautifully organized — forever.
             </p>
