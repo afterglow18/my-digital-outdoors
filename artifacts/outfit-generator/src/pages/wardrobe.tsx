@@ -307,16 +307,16 @@ export default function WardrobePage() {
                   </span>
                 </button>
 
-                {/* ── Item carousel — starts just below the heading label ── */}
+                {/* ── Item carousel — sits above the heading label ── */}
                 {items.length > 0 && (
                   <div
                     data-testid={`row-${key}`}
                     style={{
                       position: "absolute",
-                      top:    btnCY + btnH / 2 + 6,
+                      top:    secTop,
                       left:   carLeft,
                       width:  carW,
-                      height: Math.max(20, pY(ir, lm.shelfY) - (btnCY + btnH / 2 + 6)),
+                      height: Math.max(20, btnCY - btnH / 2 - 6 - secTop),
                       zIndex: 10,
                       overflow: "visible",
                     }}

@@ -358,8 +358,8 @@ export default function GeneratePage() {
                     <div
                       style={{
                         position: "absolute",
-                        top: btnCY + btnH / 2 + 6, left: carLeft, width: carW,
-                        height: Math.max(20, pY(ir, lm.shelfY) - (btnCY + btnH / 2 + 6)),
+                        top: secTop, left: carLeft, width: carW,
+                        height: Math.max(20, btnCY - btnH / 2 - 6 - secTop),
                         zIndex: 10, overflow: "visible",
                       }}
                     >
@@ -374,8 +374,8 @@ export default function GeneratePage() {
                   ) : (
                     <div style={{
                       position: "absolute",
-                      top: btnCY + btnH / 2 + 6, left: carLeft, width: carW,
-                      height: Math.max(20, pY(ir, lm.shelfY) - (btnCY + btnH / 2 + 6)),
+                      top: secTop, left: carLeft, width: carW,
+                      height: Math.max(20, btnCY - btnH / 2 - 6 - secTop),
                       zIndex: 10,
                       display: "flex", alignItems: "center", justifyContent: "center",
                     }}>
