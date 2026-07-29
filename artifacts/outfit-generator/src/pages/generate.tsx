@@ -34,10 +34,10 @@ const LM = {
   doorL: 0.04,
   doorR: 0.88,
   rows: [
-    { sectionTop: 0.208, shelfY: 0.351, btnCY: 0.308 },  // Row 1 (top shelf)
-    { sectionTop: 0.380, shelfY: 0.550, btnCY: 0.473 },  // Row 2
-    { sectionTop: 0.540, shelfY: 0.712, btnCY: 0.636 },  // Row 3
-    { sectionTop: 0.716, shelfY: 0.853, btnCY: 0.804 },  // Row 4
+    { sectionTop: 0.202, shelfY: 0.351, btnCY: 0.308 },  // Row 1 (top shelf)
+    { sectionTop: 0.374, shelfY: 0.550, btnCY: 0.473 },  // Row 2
+    { sectionTop: 0.534, shelfY: 0.712, btnCY: 0.636 },  // Row 3
+    { sectionTop: 0.710, shelfY: 0.853, btnCY: 0.804 },  // Row 4
   ],
   // Action bar
   barY:   0.840,
