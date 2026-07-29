@@ -26,7 +26,12 @@ import { getImageUrl } from "@/lib/utils";
 
 const SEASON_OPTIONS    = ["", "Spring", "Summer", "Fall", "Winter", "All Season"];
 const OCCASION_OPTIONS  = ["", "Casual", "Work", "Formal", "Sport", "Special Event"];
-const CATEGORY_OPTIONS  = ["outfits", "beauty", "toiletries", "essentials"];
+const CATEGORY_OPTIONS  = [
+  { value: "outfits",    label: "Gear"        },
+  { value: "beauty",     label: "Equipment"   },
+  { value: "toiletries", label: "Supplies"    },
+  { value: "essentials", label: "Accessories" },
+];
 
 function Field({
   label,
@@ -68,7 +73,7 @@ function SelectField({
   label: string;
   value: string;
   onChange: (v: string) => void;
-  options: string[];
+  options: Array<string | { value: string; label: string }>;
 }) {
   return (
     <div className="flex flex-col gap-1">
@@ -83,11 +88,11 @@ function SelectField({
                      text-sm font-medium bg-[#FFFDF8] text-[#2A1206] focus:outline-none focus:ring-2 focus:ring-primary
                      cursor-pointer"
         >
-          {options.map((o) => (
-            <option key={o} value={o}>
-              {o || `— ${label} —`}
-            </option>
-          ))}
+          {options.map((o) => {
+            const val = typeof o === "string" ? o : o.value;
+            const lbl = typeof o === "string" ? (o || `— ${label} —`) : o.label;
+            return <option key={val} value={val}>{lbl}</option>;
+          })}
         </select>
         <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none text-black/40" />
       </div>
@@ -416,7 +421,7 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
         {/* Price + Date */}
         <div className="grid grid-cols-2 gap-3">
           <Field label="Purchase Price" value={form.purchasePrice} onChange={patch("purchasePrice") as (v: string) => void} placeholder="$49.99" />
-          <Field label="Purchase Date"  value={form.purchaseDate}  onChange={patch("purchaseDate") as (v: string) => void}  type="date" />
+          <Field label="Date"  value={form.purchaseDate}  onChange={patch("purchaseDate") as (v: string) => void}  type="date" />
         </div>
 
         {/* Notes */}
