@@ -283,7 +283,7 @@ export default function WardrobePage() {
                   style={{
                     position: "absolute",
                     top: labelY,
-                    left: "50%",
+                    left: "57%",
                     width: "60%",
                     transform: "translateX(-50%) translateY(-50%)",
                     zIndex: 23,
