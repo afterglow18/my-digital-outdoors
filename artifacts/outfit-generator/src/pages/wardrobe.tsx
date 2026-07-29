@@ -376,6 +376,23 @@ export default function WardrobePage() {
             }}
           />
 
+          {/* ── Save tap zone — centre of baked-in nav bar ── */}
+          <button
+            onClick={() => { setSaveName(""); setIsSaveOpen(true); }}
+            aria-label="Save current kit"
+            style={{
+              position: "absolute",
+              top:    pY(ir, 0.888),
+              left:   pX(ir, 0.295),
+              width:  pW(ir, 0.410),
+              height: pH(ir, 0.080),
+              zIndex: 25,
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
+            }}
+          />
+
           {/* ── Lipstick icon tap zone — opens premium upgrade sheet ── */}
           <button
             onClick={() => setUpgradeReason("items")}
