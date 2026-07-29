@@ -50,8 +50,8 @@ const ROWS: { key: RowKey; btnLabel: string }[] = [
 ];
 
 // ── Image constants ───────────────────────────────────────────────────────────
-const IMG_W = 971;
-const IMG_H = 1619;
+const IMG_W = 1023;
+const IMG_H = 1537;
 const NAV_H = 90;
 
 // ── Landmark fractions (calibrated for shelves-bg.png 971×1619) ──────────────
