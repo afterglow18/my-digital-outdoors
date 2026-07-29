@@ -237,6 +237,9 @@ export default function GeneratePage() {
     ? LM.rows.map(lm => pH(ir, lm.shelfY - lm.sectionTop))
     : LM.rows.map(() => 0);
 
+  // Uniform photo height — same logic as wardrobe so cards match visually
+  const uniformPhotoH = Math.max(0, Math.min(...sectionHeights) - 4) * 0.82;
+
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div
@@ -367,7 +370,7 @@ export default function GeneratePage() {
                         ref={rowRefs[key]}
                         items={items}
                         onCenteredItem={setCentredHandlers[key]}
-                        maxPhotoH={Math.max(0, sectionHeights[rowIdx] - 4) * 0.82}
+                        maxPhotoH={uniformPhotoH}
                         disableSwipe
                       />
                     </div>
@@ -382,7 +385,7 @@ export default function GeneratePage() {
                       <span style={{
                         fontSize: 10, fontWeight: 700,
                         letterSpacing: "0.09em", textTransform: "uppercase",
-                        color: "rgba(180,100,110,0.40)",
+                        color: "rgba(237,217,176,0.50)",
                       }}>
                         No items
                       </span>
