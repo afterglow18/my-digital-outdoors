@@ -68,13 +68,13 @@
      Set to 0 on iPad/desktop where the sidebar replaces the bottom bar. */
   --bottom-nav-h: 90px;
   
-  /* Garage Palette: Warm Tan, Leather Brown, Cream, Black */
+  /* Outdoors Palette: Burnt Orange, Leather Brown, Cream, Black */
   --background: 40 30% 97%; /* Cream */
   --foreground: 0 0% 9%; /* Almost Black */
   
   --border: 0 0% 9%;
   --input: 0 0% 9%;
-  --ring: 28 45% 40%;
+  --ring: 24 100% 44%; /* Burnt Orange */
   
   --card: 0 0% 100%;
   --card-foreground: 0 0% 9%;
@@ -84,8 +84,8 @@
   --popover-foreground: 0 0% 9%;
   --popover-border: 0 0% 9%;
   
-  --primary: 35 55% 82%; /* Warm Tan */
-  --primary-foreground: 28 50% 18%; /* Dark Brown */
+  --primary: 24 100% 44%; /* Burnt Orange */
+  --primary-foreground: 0 0% 100%; /* White */
   
   --secondary: 28 42% 55%; /* Medium Leather Brown */
   --secondary-foreground: 40 30% 97%; /* Cream */
@@ -93,8 +93,8 @@
   --muted: 0 0% 90%;
   --muted-foreground: 0 0% 40%;
   
-  --accent: 195 100% 80%; /* Baby Blue */
-  --accent-foreground: 0 0% 9%;
+  --accent: 24 100% 44%; /* Burnt Orange */
+  --accent-foreground: 0 0% 100%; /* White */
   
   --destructive: 0 100% 60%;
   --destructive-foreground: 0 0% 100%;
@@ -136,8 +136,8 @@
   --popover-foreground: 45 33% 98%;
   --popover-border: 45 33% 98%;
   
-  --primary: 35 55% 82%;
-  --primary-foreground: 28 50% 18%;
+  --primary: 24 100% 44%;
+  --primary-foreground: 0 0% 100%;
   
   --secondary: 28 42% 55%;
   --secondary-foreground: 40 30% 97%;
@@ -145,8 +145,8 @@
   --muted: 0 0% 20%;
   --muted-foreground: 0 0% 70%;
   
-  --accent: 195 100% 80%;
-  --accent-foreground: 0 0% 9%;
+  --accent: 24 100% 44%;
+  --accent-foreground: 0 0% 100%;
   
   --destructive: 0 100% 60%;
   --destructive-foreground: 0 0% 100%;

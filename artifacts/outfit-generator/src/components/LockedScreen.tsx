@@ -23,7 +23,7 @@ export function LockedScreen({ onTryAgain, isPending }: Props) {
       <div
         className="w-20 h-20 rounded-full border-[3px] border-black flex items-center justify-center"
         style={{
-          background: "#E8D4B0",
+          background: "#E05C00",
           boxShadow: "4px 4px 0px 0px rgba(0,0,0,1)",
         }}
       >
@@ -52,7 +52,7 @@ export function LockedScreen({ onTryAgain, isPending }: Props) {
                    active:translate-x-0.5 active:translate-y-0.5 active:shadow-none
                    disabled:opacity-50 disabled:cursor-not-allowed"
         style={{
-          background: "#E8D4B0",
+          background: "#E05C00",
           boxShadow: "3px 3px 0px 0px rgba(0,0,0,1)",
         }}
       >

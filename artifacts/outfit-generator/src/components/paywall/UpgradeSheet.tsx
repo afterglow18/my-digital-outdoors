@@ -2,7 +2,7 @@
  * UpgradeSheet — three-tier paywall (Monthly / Yearly / Lifetime).
  *
  * Single-screen, no scroll. Lifetime pre-selected as "Best Value".
- * All accent colour uses bg-primary (warm tan hsl(35 55% 82%)).
+ * All accent colour uses bg-primary (burnt orange hsl(24 100% 44%)).
  *
  * RC package identifiers expected in the default offering:
  *   $rc_monthly   → Monthly  $1.99
@@ -90,7 +90,7 @@ function TierCard({
       className="flex-1 flex flex-col rounded-xl border-[3px] transition-all relative overflow-hidden text-left"
       style={{
         borderColor: selected ? "#000" : "#C9BAA5",
-        background:  selected ? "hsl(35 55% 82%)" : "hsl(35 30% 93%)",
+        background:  selected ? "hsl(24 100% 44%)" : "hsl(24 50% 92%)",
         boxShadow:   selected ? "3px 3px 0px 0px rgba(0,0,0,1)" : "none",
       }}
     >
@@ -206,11 +206,11 @@ export function UpgradeSheet({ reason, onClose }: Props) {
         <div className="rounded-2xl border-[3px] border-black overflow-hidden" style={{ background: "#111" }}>
           <div className="px-4 py-4 flex flex-col gap-2">
             <p className="font-display font-bold uppercase text-[1.45rem] leading-[0.92] tracking-tight"
-               style={{ color: "hsl(35 55% 82%)" }}>
+               style={{ color: "hsl(24 100% 44%)" }}>
               Unlimited gear collections
             </p>
             <p className="font-display font-bold uppercase text-[1.45rem] leading-[0.92] tracking-tight"
-               style={{ color: "hsl(35 55% 82%)" }}>
+               style={{ color: "hsl(24 100% 44%)" }}>
               Unlimited saved outfits
             </p>
             <p className="text-white/60 text-xs font-medium mt-1 leading-snug">
