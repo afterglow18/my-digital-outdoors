@@ -297,7 +297,7 @@ export default function WardrobePage() {
                     fontFamily: "var(--font-display)",
                     textTransform: "uppercase",
                   }}>
-                    {names[key].toUpperCase()}
+                    + Add {names[key]}
                   </span>
                 </button>
 
