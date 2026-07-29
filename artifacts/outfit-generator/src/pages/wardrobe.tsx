@@ -264,8 +264,8 @@ export default function WardrobePage() {
 
             const secTop  = pY(ir, lm.sectionTop);
             const secH    = pH(ir, lm.shelfY - lm.sectionTop);
-            const carLeft = pX(ir, LM.doorL);
-            const carW    = pW(ir, LM.doorR - LM.doorL);
+            const carLeft = pX(ir, 0.24);   // matches heading left edge (54% - 30%)
+            const carW    = pW(ir, 0.60);   // matches heading width
 
             // ADD button: centered in the section at btnCY
             const btnCY   = pY(ir, lm.btnCY);

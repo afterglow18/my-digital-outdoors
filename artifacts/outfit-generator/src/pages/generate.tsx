@@ -267,8 +267,8 @@ export default function GeneratePage() {
       />
 
       {ready && (() => {
-        const carLeft = pX(ir, LM.doorL);
-        const carW    = pW(ir, LM.doorR - LM.doorL);
+        const carLeft = pX(ir, 0.24);   // matches heading left edge (54% - 30%)
+        const carW    = pW(ir, 0.60);   // matches heading width
 
         return (
           <>
