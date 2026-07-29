@@ -198,10 +198,10 @@ export const CATEGORY_KEYS = ["outfits", "beauty", "toiletries", "essentials"] a
 export type CategoryKey = typeof CATEGORY_KEYS[number];
 
 export const DEFAULT_CATEGORY_NAMES: Record<CategoryKey, string> = {
-  outfits:    "Outfits",
-  beauty:     "Beauty",
-  toiletries: "Toiletries",
-  essentials: "Essentials",
+  outfits:    "Gear",
+  beauty:     "Equipment",
+  toiletries: "Supplies",
+  essentials: "Accessories",
 };
 
 export function getCategoryNamesQueryKey() {

@@ -43,10 +43,10 @@ type RowKey   = "outfits" | "beauty" | "toiletries" | "essentials";
 type Category = "outfits" | "beauty" | "toiletries" | "essentials";
 
 const ROWS: { key: RowKey; btnLabel: string }[] = [
-  { key: "outfits",    btnLabel: "+ ADD OUTFITS"    },
-  { key: "beauty",     btnLabel: "+ ADD BEAUTY"     },
-  { key: "toiletries", btnLabel: "+ ADD TOILETRIES" },
-  { key: "essentials", btnLabel: "+ ADD ESSENTIALS" },
+  { key: "outfits",    btnLabel: "+ ADD GEAR"        },
+  { key: "beauty",     btnLabel: "+ ADD EQUIPMENT"   },
+  { key: "toiletries", btnLabel: "+ ADD SUPPLIES"    },
+  { key: "essentials", btnLabel: "+ ADD ACCESSORIES" },
 ];
 
 // ── Image constants ───────────────────────────────────────────────────────────
