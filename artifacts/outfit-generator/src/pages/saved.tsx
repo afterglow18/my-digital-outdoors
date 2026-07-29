@@ -417,7 +417,7 @@ export default function SavedPage() {
           </div>
           <h3 className="font-display font-bold text-xl mb-2">No kits saved yet.</h3>
           <p className="text-sm font-medium text-muted-foreground">
-            Head to your Gear tab, spin the slots, and save kits you love.
+            Head to your Outdoors tab, spin the slots, and save kits you love.
           </p>
         </div>
       )}
