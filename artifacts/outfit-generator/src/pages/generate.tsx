@@ -292,8 +292,8 @@ export default function GeneratePage() {
                   <div style={{
                     position: "absolute",
                     top: labelY,
-                    left: carLeft,
-                    width: carW,
+                    left: 0,
+                    width: "100%",
                     transform: "translateY(-50%)",
                     zIndex: 12,
                     textAlign: "center",
