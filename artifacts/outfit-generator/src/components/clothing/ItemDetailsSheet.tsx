@@ -379,13 +379,13 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
             ) : (
               <button
                 onClick={handleRemoveBg}
-                disabled={bgRemoving}
+                disabled={bgRemoving || !!localImageUrl}
                 className="w-full py-2.5 flex items-center justify-center gap-2
                            text-[11px] font-bold uppercase tracking-wider text-black/60
                            disabled:opacity-40 active:bg-muted transition-colors"
               >
                 <Wand2 className="w-3.5 h-3.5" />
-                {bgRemoving ? "Removing background…" : "Clean Up Photo ✨"}
+                {bgRemoving ? "Removing background…" : localImageUrl ? "Already Cleaned ✨" : "Clean Up Photo ✨"}
               </button>
             )}
           </div>
