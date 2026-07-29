@@ -163,9 +163,9 @@ export default function SavedPage() {
     <div className="min-h-full flex flex-col pt-8 px-4 pb-8 md:px-8 bg-secondary/10 relative">
       <div className="w-full max-w-3xl mx-auto">
       <header className="mb-6">
-        <h1 className="text-4xl font-display font-bold uppercase tracking-tighter mb-1">Kit Rack</h1>
+        <h1 className="text-4xl font-display font-bold uppercase tracking-tighter mb-1">Lookbook</h1>
         <div className="flex items-center justify-between">
-          <p className="font-medium text-muted-foreground text-sm">Your trail-tested kits.</p>
+          <p className="font-medium text-muted-foreground text-sm">Hall of fame.</p>
 
           {isFree && outfitCount > 0 && (
             <button
