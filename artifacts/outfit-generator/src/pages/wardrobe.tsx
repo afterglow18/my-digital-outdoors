@@ -435,7 +435,7 @@ export default function WardrobePage() {
             >
               {saveSuccess ? (
                 <div style={{ textAlign: "center", padding: "12px 0" }}>
-                  <div style={{ fontSize: 32, marginBottom: 8 }}>💕</div>
+                  <div style={{ fontSize: 32, marginBottom: 8 }}>🏕️</div>
                   <p style={{ fontWeight: 800, fontSize: 16, fontFamily: "var(--font-display)" }}>Kit saved!</p>
                 </div>
               ) : (
