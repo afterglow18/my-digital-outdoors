@@ -63,9 +63,9 @@ const LM = {
 
   rows: [
     { sectionTop: 0.198, shelfY: 0.341, btnCY: 0.308 },  // Row 1 (top shelf)
-    { sectionTop: 0.370, shelfY: 0.528, btnCY: 0.473 },  // Row 2
-    { sectionTop: 0.530, shelfY: 0.684, btnCY: 0.636 },  // Row 3
-    { sectionTop: 0.700, shelfY: 0.825, btnCY: 0.804 },  // Row 4
+    { sectionTop: 0.364, shelfY: 0.522, btnCY: 0.473 },  // Row 2
+    { sectionTop: 0.524, shelfY: 0.678, btnCY: 0.636 },  // Row 3
+    { sectionTop: 0.694, shelfY: 0.819, btnCY: 0.804 },  // Row 4
   ],
 
   saveAreaY: 0.84,
