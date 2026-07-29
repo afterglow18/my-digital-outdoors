@@ -166,6 +166,15 @@ export function UpgradeSheet({ reason, onClose }: Props) {
     }
   }, [status, isLoading, offerings, selected, purchase, onClose]);
 
+  // CSS plaid pattern — burnt orange base with dark cross-bands and fine thread lines
+  const plaidBg = [
+    "repeating-linear-gradient(90deg, transparent 0,transparent 36px, rgba(80,15,0,0.28) 36px,rgba(80,15,0,0.28) 54px, transparent 54px,transparent 90px, rgba(80,15,0,0.28) 90px,rgba(80,15,0,0.28) 108px)",
+    "repeating-linear-gradient(0deg,  transparent 0,transparent 36px, rgba(80,15,0,0.28) 36px,rgba(80,15,0,0.28) 54px, transparent 54px,transparent 90px, rgba(80,15,0,0.28) 90px,rgba(80,15,0,0.28) 108px)",
+    "repeating-linear-gradient(90deg, rgba(255,255,255,0.07) 0,rgba(255,255,255,0.07) 2px, transparent 2px,transparent 18px)",
+    "repeating-linear-gradient(0deg,  rgba(255,255,255,0.07) 0,rgba(255,255,255,0.07) 2px, transparent 2px,transparent 18px)",
+    "#C54400",
+  ].join(", ");
+
   return (
     <motion.div
       initial={{ opacity: 0, y: "100%" }}
@@ -175,18 +184,35 @@ export function UpgradeSheet({ reason, onClose }: Props) {
       className="fixed inset-0 z-[80] flex flex-col max-w-md mx-auto"
       style={{ background: "#F8F4ED" }}
     >
-      {/* Close button */}
-      <div className="flex justify-end px-4 pb-0 flex-shrink-0"
-        style={{ paddingTop: "max(1rem, env(safe-area-inset-top))" }}>
+      {/* ── Plaid orange header ── */}
+      <div
+        className="relative flex-shrink-0 flex flex-col items-center justify-end pb-4"
+        style={{
+          background: plaidBg,
+          paddingTop: "max(2.5rem, env(safe-area-inset-top))",
+          minHeight: 120,
+        }}
+      >
+        {/* Close button */}
         <button
           onClick={onClose}
           aria-label="Close"
-          className="w-9 h-9 rounded-full border-2 border-black flex items-center justify-center
-                     bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]
-                     active:translate-y-0.5 active:translate-x-0.5 active:shadow-none transition-all"
+          className="absolute top-0 right-3 w-9 h-9 rounded-full border-2 border-white/40 flex items-center justify-center
+                     bg-black/20 active:bg-black/35 transition-all"
+          style={{ top: "max(0.6rem, calc(env(safe-area-inset-top) + 0.25rem))" }}
         >
-          <X className="w-4 h-4" />
+          <X className="w-4 h-4 text-white" />
         </button>
+
+        {/* Badge */}
+        <div style={{ textAlign: "center" }}>
+          <p className="text-white/70 font-bold uppercase tracking-[0.22em]" style={{ fontSize: 9 }}>
+            My Digital Outdoors
+          </p>
+          <p className="text-white font-display font-bold uppercase tracking-wide mt-0.5" style={{ fontSize: 15 }}>
+            ⛺ Go Premium
+          </p>
+        </div>
       </div>
 
       {/* Content — fills remaining height, no scroll */}
@@ -194,7 +220,7 @@ export function UpgradeSheet({ reason, onClose }: Props) {
 
         {/* Headline */}
         <div>
-          <h1 className="font-display font-bold text-[2.1rem] uppercase tracking-tight leading-[0.88]">
+          <h1 className="font-display font-bold text-[1.9rem] uppercase tracking-tight leading-[0.88]">
             {HEADLINES[reason]}
           </h1>
           <p className="text-xs font-semibold text-black/45 mt-1.5" style={{ whiteSpace: "pre-line" }}>
