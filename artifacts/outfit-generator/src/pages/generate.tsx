@@ -34,10 +34,10 @@ const LM = {
   doorL: 0.04,
   doorR: 0.88,
   rows: [
-    { sectionTop: 0.228, shelfY: 0.371, btnCY: 0.308 },  // Row 1 (top shelf)
-    { sectionTop: 0.412, shelfY: 0.570, btnCY: 0.467 },  // Row 2
-    { sectionTop: 0.578, shelfY: 0.732, btnCY: 0.630 },  // Row 3
-    { sectionTop: 0.748, shelfY: 0.873, btnCY: 0.798 },  // Row 4
+    { sectionTop: 0.208, shelfY: 0.351, btnCY: 0.308 },  // Row 1 (top shelf)
+    { sectionTop: 0.392, shelfY: 0.550, btnCY: 0.467 },  // Row 2
+    { sectionTop: 0.558, shelfY: 0.712, btnCY: 0.630 },  // Row 3
+    { sectionTop: 0.728, shelfY: 0.853, btnCY: 0.798 },  // Row 4
   ],
   // Action bar
   barY:   0.840,
@@ -367,7 +367,7 @@ export default function GeneratePage() {
                         ref={rowRefs[key]}
                         items={items}
                         onCenteredItem={setCentredHandlers[key]}
-                        maxPhotoH={Math.max(0, sectionHeights[rowIdx] - 4)}
+                        maxPhotoH={Math.max(0, sectionHeights[rowIdx] - 4) * 0.82}
                         disableSwipe
                       />
                     </div>
