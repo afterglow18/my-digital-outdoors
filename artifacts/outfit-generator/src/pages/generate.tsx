@@ -404,7 +404,7 @@ export default function GeneratePage() {
                   exit={{ opacity: 0 }}
                   style={{
                     position: "absolute",
-                    top: "46%", left: "50%",
+                    top: "46%", left: "54%",
                     transform: "translate(-50%, -50%)",
                     zIndex: 25,
                     pointerEvents: "none",
@@ -427,7 +427,7 @@ export default function GeneratePage() {
                     padding: "3px 11px", borderRadius: 20,
                     whiteSpace: "nowrap",
                   }}>
-                    Building your look…
+                    Preparing Your Adventure…
                   </span>
                 </motion.div>
               )}
