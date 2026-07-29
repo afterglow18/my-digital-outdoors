@@ -163,9 +163,9 @@ export default function SavedPage() {
     <div className="min-h-full flex flex-col pt-8 px-4 pb-8 md:px-8 bg-secondary/10 relative">
       <div className="w-full max-w-3xl mx-auto">
       <header className="mb-6">
-        <h1 className="text-4xl font-display font-bold uppercase tracking-tighter mb-1">Lookbook</h1>
+        <h1 className="text-4xl font-display font-bold uppercase tracking-tighter mb-1">Kit Rack</h1>
         <div className="flex items-center justify-between">
-          <p className="font-medium text-muted-foreground text-sm">Hall of fame.</p>
+          <p className="font-medium text-muted-foreground text-sm">Your trail-tested kits.</p>
 
           {isFree && outfitCount > 0 && (
             <button
@@ -193,10 +193,10 @@ export default function SavedPage() {
                      shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
         >
           <p className="font-display font-bold text-sm uppercase tracking-tight">
-            🔓 Lookbook is full
+            🔓 Kit Rack is full
           </p>
           <p className="text-xs text-black/60 mt-1 mb-3 leading-snug">
-            You've saved {FREE_OUTFIT_LIMIT} looks — the free limit.
+            You've saved {FREE_OUTFIT_LIMIT} kits — the free limit.
             Unlock Forever to save unlimited cases.
           </p>
           <button
@@ -415,9 +415,9 @@ export default function SavedPage() {
           <div className="w-14 h-14 bg-accent rounded-full flex items-center justify-center border-2 border-black mb-4">
             <Bookmark className="w-7 h-7" />
           </div>
-          <h3 className="font-display font-bold text-xl mb-2">No looks saved yet.</h3>
+          <h3 className="font-display font-bold text-xl mb-2">No kits saved yet.</h3>
           <p className="text-sm font-medium text-muted-foreground">
-            Head to your Gear tab, spin the slots, and save looks you love.
+            Head to your Gear tab, spin the slots, and save kits you love.
           </p>
         </div>
       )}
