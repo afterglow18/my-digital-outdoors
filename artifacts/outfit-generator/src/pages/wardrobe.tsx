@@ -50,24 +50,22 @@ const ROWS: { key: RowKey; btnLabel: string }[] = [
 ];
 
 // ── Image constants ───────────────────────────────────────────────────────────
-const IMG_W = 1024;
-const IMG_H = 1536;
+const IMG_W = 971;
+const IMG_H = 1619;
 const NAV_H = 90;
 
-// ── Landmark fractions (calibrated for garage-open-bg.jpg 989×1536) ─────────
-// Real-photo garage, shot from above.
-// Lid interior:  y ≈ 0.05 → 0.38   (rows 1 & 2)
-// Main body:     y ≈ 0.42 → 0.80   (rows 3 & 4)
-// doorL/doorR:   left/right inner walls of the garage interior
+// ── Landmark fractions (calibrated for shelves-bg.png 971×1619) ──────────────
+// Cabin interior: 4 wooden shelf bays, "OUTDOORS" sign at top.
+// doorL/doorR: usable width of the shelf area
 const LM = {
-  doorL: 0.182,  // inner left wall
-  doorR: 0.776,  // inner right wall
+  doorL: 0.04,   // left edge of shelf items
+  doorR: 0.88,   // right edge of shelf items
 
   rows: [
-    { sectionTop: 0.170, shelfY: 0.265, btnCY: 0.150 },  // OUTFITS  (lid, upper)
-    { sectionTop: 0.305, shelfY: 0.400, btnCY: 0.285 },  // BEAUTY   (lid, lower)
-    { sectionTop: 0.505, shelfY: 0.618, btnCY: 0.485 },  // TOILETRIES (body, upper)
-    { sectionTop: 0.660, shelfY: 0.770, btnCY: 0.640 },  // ESSENTIALS (body, lower)
+    { sectionTop: 0.120, shelfY: 0.263, btnCY: 0.168 },  // Row 1 (top shelf)
+    { sectionTop: 0.272, shelfY: 0.430, btnCY: 0.295 },  // Row 2
+    { sectionTop: 0.440, shelfY: 0.594, btnCY: 0.460 },  // Row 3
+    { sectionTop: 0.604, shelfY: 0.753, btnCY: 0.622 },  // Row 4
   ],
 
   saveAreaY: 0.84,
@@ -232,32 +230,6 @@ export default function WardrobePage() {
 
       {ready && (
         <>
-          {/* ── Page title ── */}
-          <div style={{
-            position: "absolute",
-            top: pY(ir, 0.090),
-            left: 8,
-            right: 8,
-            zIndex: 25,
-            textAlign: "center",
-            pointerEvents: "none",
-            overflow: "hidden",
-          }}>
-            <div style={{
-              fontFamily: "var(--font-display, serif)",
-              fontWeight: 900,
-              fontSize: Math.max(8, Math.min(pW(ir, 0.030), ir.containerW * 0.040)),
-              letterSpacing: "0.08em",
-              whiteSpace: "nowrap",
-              textTransform: "uppercase",
-              color: "#EDD9B0",
-              textShadow: "0 2px 10px rgba(0,0,0,0.75), 0 1px 3px rgba(0,0,0,0.95)",
-              lineHeight: 1.1,
-            }}>
-              MY DIGITAL OUTDOORS
-            </div>
-          </div>
-
           {/* ── Item-count badge (free tier) ── */}
           {itemsLeft !== null && (
             <button

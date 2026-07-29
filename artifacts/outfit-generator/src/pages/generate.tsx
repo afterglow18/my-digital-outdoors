@@ -24,22 +24,23 @@ import { ClosetRow, ClosetRowHandle } from "@/components/ClosetRow";
 import { useQueryClient } from "@tanstack/react-query";
 
 // ── Layout constants (same as wardrobe.tsx) ───────────────────────────────────
-const IMG_W = 1024;
-const IMG_H = 1536;
+const IMG_W = 971;
+const IMG_H = 1619;
 const NAV_H = 90;
 const PINK  = "#E8D4B0";
 
+// ── Landmark fractions (calibrated for shelves-bg.png 971×1619) ──────────────
 const LM = {
-  doorL: 0.182,
-  doorR: 0.776,
+  doorL: 0.04,
+  doorR: 0.88,
   rows: [
-    { sectionTop: 0.170, shelfY: 0.265, btnCY: 0.150 },  // OUTFITS  (lid, upper)
-    { sectionTop: 0.305, shelfY: 0.400, btnCY: 0.285 },  // BEAUTY   (lid, lower)
-    { sectionTop: 0.505, shelfY: 0.618, btnCY: 0.485 },  // TOILETRIES (body, upper)
-    { sectionTop: 0.660, shelfY: 0.770, btnCY: 0.640 },  // ESSENTIALS (body, lower)
+    { sectionTop: 0.120, shelfY: 0.263, btnCY: 0.168 },  // Row 1 (top shelf)
+    { sectionTop: 0.272, shelfY: 0.430, btnCY: 0.295 },  // Row 2
+    { sectionTop: 0.440, shelfY: 0.594, btnCY: 0.460 },  // Row 3
+    { sectionTop: 0.604, shelfY: 0.753, btnCY: 0.622 },  // Row 4
   ],
-  // Action bar: from just below FRAGRANCES through the full bottom
-  barY:   0.848,
+  // Action bar
+  barY:   0.840,
   barBot: 1.000,
 } as const;
 
@@ -271,45 +272,6 @@ export default function GeneratePage() {
 
         return (
           <>
-            {/* ── Page title ── */}
-            <div style={{
-              position: "absolute",
-              top: pY(ir, 0.095),
-              left: 8,
-              right: 8,
-              zIndex: 25,
-              textAlign: "center",
-              pointerEvents: "none",
-              overflow: "hidden",
-            }}>
-              <div style={{
-                fontFamily: "var(--font-display, serif)",
-                fontWeight: 900,
-                fontSize: Math.max(8, Math.min(pW(ir, 0.030), ir.containerH * 0.025)),
-                letterSpacing: "0.08em",
-                whiteSpace: "nowrap",
-                textTransform: "uppercase",
-                color: "#EDD9B0",
-                textShadow: "0 2px 10px rgba(0,0,0,0.75), 0 1px 3px rgba(0,0,0,0.95)",
-                lineHeight: 1.1,
-              }}>
-                MY DIGITAL OUTDOORS
-              </div>
-              <div style={{
-                fontFamily: "var(--font-display, serif)",
-                fontWeight: 900,
-                fontSize: Math.max(10, Math.min(pW(ir, 0.040), ir.containerH * 0.032)),
-                letterSpacing: "0.06em",
-                whiteSpace: "nowrap",
-                textTransform: "uppercase",
-                color: "#EDD9B0",
-                textShadow: "0 2px 10px rgba(0,0,0,0.75), 0 1px 3px rgba(0,0,0,0.95)",
-                lineHeight: 1.1,
-              }}>
-                MATCHMAKER
-              </div>
-            </div>
-
             {/* ── 4 shelf carousels + ADD-button covers ── */}
             {ROWS.map(({ key }, rowIdx) => {
               const lm    = LM.rows[rowIdx];
