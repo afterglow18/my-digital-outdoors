@@ -62,10 +62,10 @@ const LM = {
   doorR: 0.88,   // right edge of shelf items
 
   rows: [
-    { sectionTop: 0.230, shelfY: 0.373, btnCY: 0.278 },  // Row 1 (top shelf)
-    { sectionTop: 0.382, shelfY: 0.540, btnCY: 0.405 },  // Row 2
-    { sectionTop: 0.550, shelfY: 0.704, btnCY: 0.570 },  // Row 3
-    { sectionTop: 0.714, shelfY: 0.855, btnCY: 0.732 },  // Row 4
+    { sectionTop: 0.270, shelfY: 0.413, btnCY: 0.318 },  // Row 1 (top shelf)
+    { sectionTop: 0.422, shelfY: 0.580, btnCY: 0.445 },  // Row 2
+    { sectionTop: 0.590, shelfY: 0.744, btnCY: 0.610 },  // Row 3
+    { sectionTop: 0.750, shelfY: 0.875, btnCY: 0.768 },  // Row 4
   ],
 
   saveAreaY: 0.84,
