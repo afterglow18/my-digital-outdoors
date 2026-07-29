@@ -39,7 +39,7 @@ export function BgRemovalSheet({ originalUrl, cleanedUrl, onSave, onClose }: Pro
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cleanedUrl]);
 
-  const RING_ACTIVE   = "3px solid #f43f5e";   // rose-500
+  const RING_ACTIVE   = "3px solid #E05C00";   // burnt orange
   const RING_INACTIVE = "3px solid rgba(0,0,0,0.12)";
 
   return (
@@ -90,7 +90,7 @@ export function BgRemovalSheet({ originalUrl, cleanedUrl, onSave, onClose }: Pro
                 className="absolute inset-0 w-full h-full object-contain"
               />
               {selected === "original" && (
-                <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-rose-500 border-2 border-white
+                <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-[#E05C00] border-2 border-white
                                 flex items-center justify-center shadow-sm">
                   <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
                 </div>
@@ -132,7 +132,7 @@ export function BgRemovalSheet({ originalUrl, cleanedUrl, onSave, onClose }: Pro
                 </div>
               )}
               {selected === "cleaned" && cleanedUrl && (
-                <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-rose-500 border-2 border-white
+                <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-[#E05C00] border-2 border-white
                                 flex items-center justify-center shadow-sm">
                   <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
                 </div>
