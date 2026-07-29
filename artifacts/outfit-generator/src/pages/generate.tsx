@@ -292,9 +292,9 @@ export default function GeneratePage() {
                   <div style={{
                     position: "absolute",
                     top: labelY,
-                    left: 0,
-                    width: "100%",
-                    transform: "translateY(-50%)",
+                    left: "50%",
+                    width: "52%",
+                    transform: "translateX(-50%) translateY(-50%)",
                     zIndex: 12,
                     textAlign: "center",
                     pointerEvents: "auto",
@@ -629,7 +629,7 @@ export default function GeneratePage() {
                     <input
                       autoFocus
                       type="text"
-                      placeholder="Name this case…"
+                      placeholder="Name this kit…"
                       value={saveName}
                       onChange={e => setSaveName(e.target.value)}
                       onKeyDown={e => e.key === "Enter" && handleSave()}

@@ -283,9 +283,9 @@ export default function WardrobePage() {
                   style={{
                     position: "absolute",
                     top: labelY,
-                    left: 0,
-                    width: "100%",
-                    transform: "translateY(-50%)",
+                    left: "50%",
+                    width: "52%",
+                    transform: "translateX(-50%) translateY(-50%)",
                     zIndex: 23,
                     textAlign: "center",
                     background: "none",
@@ -442,19 +442,19 @@ export default function WardrobePage() {
               {saveSuccess ? (
                 <div style={{ textAlign: "center", padding: "12px 0" }}>
                   <div style={{ fontSize: 32, marginBottom: 8 }}>💕</div>
-                  <p style={{ fontWeight: 800, fontSize: 16, fontFamily: "var(--font-display)" }}>Case saved!</p>
+                  <p style={{ fontWeight: 800, fontSize: 16, fontFamily: "var(--font-display)" }}>Kit saved!</p>
                 </div>
               ) : (
                 <>
                   <p style={{ fontWeight: 800, fontSize: 15, fontFamily: "var(--font-display)", marginBottom: 12 }}>
-                    Name this case
+                    Name this kit
                   </p>
                   <input
                     autoFocus
                     value={saveName}
                     onChange={e => setSaveName(e.target.value)}
                     onKeyDown={e => e.key === "Enter" && saveName.trim() && handleSave()}
-                    placeholder="e.g. Sunday Glow ✨"
+                    placeholder="e.g. Morning Hike 🏕️"
                     style={{
                       width: "100%", height: 42, borderRadius: 10,
                       border: "2px solid #000", padding: "0 12px",
