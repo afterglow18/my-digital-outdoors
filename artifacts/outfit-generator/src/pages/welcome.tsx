@@ -57,6 +57,37 @@ function DoorFace() {
       }} />
 
 
+      {/* ── App title ── */}
+      <div style={{
+        position: "absolute",
+        top: "23%",
+        left: 0, right: 0,
+        textAlign: "center",
+        pointerEvents: "none",
+      }}>
+        <div style={{
+          fontFamily: "var(--font-display, serif)",
+          fontWeight: 900,
+          fontSize: "clamp(28px, 8vw, 46px)",
+          letterSpacing: "-0.02em",
+          lineHeight: 1.08,
+          color: "#EDD9B0",
+          textShadow: "0 2px 14px rgba(0,0,0,0.65), 0 1px 3px rgba(0,0,0,0.9)",
+        }}>
+          MY DIGITAL<br />OUTDOORS
+        </div>
+        <div style={{
+          marginTop: 9,
+          fontSize: 10,
+          fontWeight: 500,
+          letterSpacing: "0.24em",
+          textTransform: "uppercase" as const,
+          color: "rgba(232,210,168,0.38)",
+        }}>
+          your outdoor kit
+        </div>
+      </div>
+
       {/* ── Raised panels ── */}
 
       {/* Upper panel */}
