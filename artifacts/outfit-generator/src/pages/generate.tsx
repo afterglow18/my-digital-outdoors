@@ -481,8 +481,8 @@ export default function GeneratePage() {
               style={{
                 position: "absolute",
                 top:    pY(ir, LM.barY),
-                left:   pX(ir, LM.doorL),
-                width:  pW(ir, LM.doorR - LM.doorL),
+                left:   0,
+                width:  "100%",
                 height: pH(ir, LM.barBot - LM.barY),
                 zIndex: 22,
                 display: "flex",
