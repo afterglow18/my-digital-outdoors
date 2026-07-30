@@ -547,10 +547,10 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount, onC
               <Loader2 className="w-12 h-12 animate-spin" strokeWidth={1.5} />
             </div>
             <div className="text-center">
-              <p className="font-display font-bold text-2xl uppercase tracking-tight">Saving…</p>
+              <p className="font-display font-bold text-2xl uppercase tracking-tight">{batchProgress && batchProgress.total > 1 ? "Cleaning…" : "Saving…"}</p>
               <p className="text-sm text-muted-foreground mt-1">
                 {batchProgress && batchProgress.total > 1
-                  ? `Photo ${batchProgress.current} of ${batchProgress.total}`
+                  ? `Cleaning photo ${batchProgress.current} of ${batchProgress.total}`
                   : "Adding to your kit."}
               </p>
             </div>
