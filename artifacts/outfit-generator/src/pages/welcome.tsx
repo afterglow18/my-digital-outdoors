@@ -168,7 +168,7 @@ function DoorFace() {
 
 // ── Main component ─────────────────────────────────────────────────────────────
 export default function WelcomePage({ onEnter }: Props) {
-  const [phase, setPhase] = useState<"hero" | "idle" | "opening" | "exiting">("hero");
+  const [phase, setPhase] = useState<"hero" | "idle" | "opening">("hero");
   const calledRef = useRef(false);
 
   // Phase 1 → Phase 2 auto-advance after 2.5 s
@@ -181,30 +181,23 @@ export default function WelcomePage({ onEnter }: Props) {
   const handleEnter = useCallback(() => {
     if (phase !== "idle") return;
     setPhase("opening");
-    // Start exit fade after door has swung open
-    setTimeout(() => setPhase("exiting"), 750);
-    // Call onEnter after fade completes
+    // Door finishes swinging at ~750 ms — app is already visible behind it, just unmount
     setTimeout(() => {
       if (calledRef.current) return;
       calledRef.current = true;
       onEnter();
-    }, 1200);
+    }, 800);
   }, [phase, onEnter]);
 
-  const doorOpen = phase === "opening" || phase === "exiting";
+  const doorOpen = phase === "opening";
 
   return (
-    <motion.div
-      animate={{ opacity: phase === "exiting" ? 0 : 1 }}
-      transition={{ duration: 0.5, ease: "easeIn" }}
+    <div
       style={{
         position: "fixed", inset: 0, zIndex: 200,
         overflow: "hidden",
-        background: "#060302",
       }}
     >
-      {/* Solid black base — prevents any bleed-through during transitions */}
-      <div style={{ position: "absolute", inset: 0, background: "#060302" }} />
 
       {/* ════════════════════════════════════════════════════════
           PHASE 2 + 3 — Door scene (rendered behind hero overlay)
@@ -218,9 +211,6 @@ export default function WelcomePage({ onEnter }: Props) {
             transition={{ duration: 0.55, ease: "easeOut" }}
             style={{ position: "absolute", inset: 0 }}
           >
-            {/* Dark exterior — static, never animated; outer container handles the exit fade */}
-            <div style={{ position: "absolute", inset: 0, background: "#040100", opacity: 0.93, pointerEvents: "none" }} />
-
             {/* 3-D door swing */}
             <div style={{
               position: "absolute", inset: 0,
@@ -389,6 +379,6 @@ export default function WelcomePage({ onEnter }: Props) {
           style={{ fontSize: 11, fontWeight: 500, color: "rgba(255,255,255,0.22)", textDecoration: "none", letterSpacing: "0.02em" }}
         >Support</a>
       </div>
-    </motion.div>
+    </div>
   );
 }

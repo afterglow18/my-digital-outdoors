@@ -74,11 +74,9 @@ function AppShell() {
 
   return (
     <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
-      {entered ? (
-        <Router />
-      ) : (
-        <WelcomePage onEnter={handleEnter} />
-      )}
+      {/* App always mounted so it's visible behind the door */}
+      <Router />
+      {!entered && <WelcomePage onEnter={handleEnter} />}
     </WouterRouter>
   );
 }
