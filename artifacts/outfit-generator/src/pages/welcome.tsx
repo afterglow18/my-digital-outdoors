@@ -1,13 +1,12 @@
 /**
- * WelcomePage — Cabin door splash screen.
+ * WelcomePage — 3-phase splash sequence (once per cold launch)
  *
- * IDLE    : Full-screen closed wooden cabin door. Welcome sign + "tap to enter".
- * OPENING : Door swings open on left hinge (rotateY 0 → -110°, 0.88 s).
- *           Hero image (hero-bg.png) is revealed behind.
- * EXITING : Whole screen fades out → onEnter().
+ * Phase 1  HERO    : Full-screen hero image + gradient + branding. Auto-advances at 2.5 s.
+ * Phase 2  IDLE    : Cabin-door animation revealed. Branding + "Enter" button at bottom.
+ * Phase 3  OPENING : Door swings open (0.75 s) → fade out → onEnter().
  */
-import { useState, useRef, useCallback } from "react";
-import { motion } from "framer-motion";
+import { useState, useRef, useCallback, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface Props { onEnter: () => void; }
 
@@ -16,13 +15,13 @@ function DoorFace() {
   return (
     <div style={{ position: "absolute", inset: 0 }}>
 
-      {/* ── Base wood colour ── */}
+      {/* Base wood colour */}
       <div style={{
         position: "absolute", inset: 0,
         background: "linear-gradient(175deg, #6B3C1A 0%, #3D1E08 35%, #523018 65%, #2A1006 100%)",
       }} />
 
-      {/* ── Horizontal plank seams ── */}
+      {/* Horizontal plank seams */}
       <div style={{
         position: "absolute", inset: 0,
         backgroundImage: `repeating-linear-gradient(
@@ -33,7 +32,7 @@ function DoorFace() {
         pointerEvents: "none",
       }} />
 
-      {/* ── Subtle vertical wood grain ── */}
+      {/* Subtle vertical wood grain */}
       <div style={{
         position: "absolute", inset: 0,
         backgroundImage: `repeating-linear-gradient(
@@ -46,7 +45,7 @@ function DoorFace() {
         pointerEvents: "none",
       }} />
 
-      {/* ── Door frame inset border ── */}
+      {/* Door frame inset border */}
       <div style={{
         position: "absolute",
         top: 14, left: 14, right: 14, bottom: 14,
@@ -56,8 +55,7 @@ function DoorFace() {
         pointerEvents: "none",
       }} />
 
-
-      {/* ── App title ── */}
+      {/* App title on door */}
       <div style={{
         position: "absolute",
         top: "23%",
@@ -88,8 +86,6 @@ function DoorFace() {
         </div>
       </div>
 
-      {/* ── Raised panels ── */}
-
       {/* Upper panel */}
       <div style={{
         position: "absolute",
@@ -112,7 +108,7 @@ function DoorFace() {
         boxShadow: "inset 0 2px 8px rgba(0,0,0,0.28), inset 0 -1px 2px rgba(255,255,255,0.035)",
       }} />
 
-      {/* ── Strap hinges (left edge) ── */}
+      {/* Strap hinges (left edge) */}
       {([18, 75] as const).map((topPct) => (
         <div key={topPct} style={{
           position: "absolute",
@@ -124,7 +120,6 @@ function DoorFace() {
           boxShadow: "0 2px 5px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,255,255,0.08)",
           transform: "translateY(-50%)",
         }}>
-          {/* Bolt heads */}
           {[25, 65].map((lp) => (
             <div key={lp} style={{
               position: "absolute",
@@ -138,14 +133,13 @@ function DoorFace() {
         </div>
       ))}
 
-      {/* ── Door knob (right side, ~56 % down) ── */}
+      {/* Door knob */}
       <div style={{
         position: "absolute",
         right: "9%",
         top: "56%",
         transform: "translateY(-50%)",
       }}>
-        {/* Knob plate */}
         <div style={{
           width: 14, height: 34,
           background: "linear-gradient(to right, #8A6020, #C8900C, #8A6020)",
@@ -154,7 +148,6 @@ function DoorFace() {
           position: "relative", left: 7,
           boxShadow: "0 1px 3px rgba(0,0,0,0.6)",
         }} />
-        {/* Knob sphere */}
         <div style={{
           width: 28, height: 28, borderRadius: "50%",
           background: "radial-gradient(circle at 35% 30%, #F0D060, #9A7020)",
@@ -163,7 +156,7 @@ function DoorFace() {
         }} />
       </div>
 
-      {/* ── Right-edge shadow (thickness illusion) ── */}
+      {/* Right-edge shadow */}
       <div style={{
         position: "absolute", top: 0, right: 0, bottom: 0, width: 10,
         background: "linear-gradient(to left, rgba(0,0,0,0.45), transparent)",
@@ -175,34 +168,42 @@ function DoorFace() {
 
 // ── Main component ─────────────────────────────────────────────────────────────
 export default function WelcomePage({ onEnter }: Props) {
-  const [phase, setPhase] = useState<"idle" | "opening" | "exiting">("idle");
+  const [phase, setPhase] = useState<"hero" | "idle" | "opening" | "exiting">("hero");
   const calledRef = useRef(false);
 
-  const handleOpen = useCallback(() => {
+  // Phase 1 → Phase 2 auto-advance after 2.5 s
+  useEffect(() => {
+    if (phase !== "hero") return;
+    const t = setTimeout(() => setPhase("idle"), 2500);
+    return () => clearTimeout(t);
+  }, [phase]);
+
+  const handleEnter = useCallback(() => {
     if (phase !== "idle") return;
     setPhase("opening");
-    // Start fade-out shortly after door is fully open
-    setTimeout(() => setPhase("exiting"), 1050);
+    // Start exit fade after door has swung open
+    setTimeout(() => setPhase("exiting"), 750);
+    // Call onEnter after fade completes
     setTimeout(() => {
       if (calledRef.current) return;
       calledRef.current = true;
       onEnter();
-    }, 1700);
+    }, 1200);
   }, [phase, onEnter]);
 
-  const doorOpen = phase !== "idle";
+  const doorOpen = phase === "opening" || phase === "exiting";
 
   return (
     <motion.div
       animate={{ opacity: phase === "exiting" ? 0 : 1 }}
-      transition={{ duration: 0.6, ease: "easeIn" }}
+      transition={{ duration: 0.5, ease: "easeIn" }}
       style={{
         position: "fixed", inset: 0, zIndex: 200,
         overflow: "hidden",
         background: "#060302",
       }}
     >
-      {/* ── Hero image — always behind, revealed as door swings open ── */}
+      {/* ── Hero image — always behind everything ── */}
       <img
         src="/hero-bg.png"
         alt=""
@@ -214,102 +215,181 @@ export default function WelcomePage({ onEnter }: Props) {
         }}
       />
 
-      {/* ── Dark exterior overlay — fades as door opens ── */}
-      <motion.div
-        style={{ position: "absolute", inset: 0, background: "#040100", pointerEvents: "none" }}
-        animate={{ opacity: doorOpen ? 0 : 0.92 }}
-        transition={{ duration: 0.85, delay: 0.25 }}
-      />
-
-      {/* ── Perspective container → 3-D door swing ── */}
-      <div style={{
-        position: "absolute", inset: 0,
-        perspective: "1100px",
-        perspectiveOrigin: "22% 50%",
-      }}>
-        <motion.div
-          style={{
-            position: "absolute", inset: 0,
-            transformOrigin: "left center",
-            cursor: doorOpen ? "default" : "pointer",
-          }}
-          initial={false}
-          animate={{ rotateY: doorOpen ? -110 : 0 }}
-          transition={{ duration: 0.88, ease: [0.25, 0.46, 0.45, 0.94] }}
-          onClick={handleOpen}
-        >
-          <DoorFace />
-
-          {/* ── Welcome sign — lower panel area ── */}
+      {/* ════════════════════════════════════════════════════════
+          PHASE 2 + 3 — Door scene (rendered behind hero overlay)
+          ════════════════════════════════════════════════════════ */}
+      <AnimatePresence>
+        {phase !== "hero" && (
           <motion.div
-            animate={{ opacity: doorOpen ? 0 : 1 }}
-            transition={{ duration: 0.2 }}
-            style={{
-              position: "absolute",
-              left: "50%", top: "69%",
-              transform: "translateX(-50%)",
-              display: "flex", flexDirection: "column",
-              alignItems: "center", gap: 10,
-              pointerEvents: "none",
-            }}
+            key="door-scene"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.55, ease: "easeOut" }}
+            style={{ position: "absolute", inset: 0 }}
           >
-            {/* Sign plaque */}
+            {/* Dark exterior — fades as door opens */}
+            <motion.div
+              style={{ position: "absolute", inset: 0, background: "#040100", pointerEvents: "none" }}
+              animate={{ opacity: doorOpen ? 0 : 0.92 }}
+              transition={{ duration: 0.85, delay: 0.25 }}
+            />
+
+            {/* 3-D door swing */}
             <div style={{
-              position: "relative",
-              background: "linear-gradient(175deg, #7A4A1E 0%, #3E1E08 55%, #5A3218 100%)",
-              border: "3px solid #2A1206",
-              borderRadius: 5,
-              padding: "10px 28px",
-              boxShadow: "0 4px 14px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.06), inset 0 -1px 0 rgba(0,0,0,0.3)",
+              position: "absolute", inset: 0,
+              perspective: "1100px",
+              perspectiveOrigin: "22% 50%",
             }}>
-              {/* Plank seam across sign */}
+              <motion.div
+                style={{
+                  position: "absolute", inset: 0,
+                  transformOrigin: "left center",
+                }}
+                initial={false}
+                animate={{ rotateY: doorOpen ? -110 : 0 }}
+                transition={{ duration: 0.75, ease: [0.25, 0.46, 0.45, 0.94] }}
+              >
+                <DoorFace />
+              </motion.div>
+            </div>
+
+            {/* Bottom branding + Enter button */}
+            <motion.div
+              animate={{ opacity: doorOpen ? 0 : 1 }}
+              transition={{ duration: 0.2 }}
+              style={{
+                position: "absolute",
+                bottom: "calc(env(safe-area-inset-bottom) + 76px)",
+                left: 0, right: 0,
+                display: "flex", flexDirection: "column",
+                alignItems: "center", gap: 14,
+                pointerEvents: doorOpen ? "none" : "auto",
+              }}
+            >
+              {/* Branding */}
+              <div style={{ textAlign: "center" }}>
+                <div style={{
+                  fontSize: 11, fontWeight: 500,
+                  letterSpacing: "0.24em",
+                  textTransform: "uppercase" as const,
+                  color: "rgba(237,217,176,0.55)",
+                  marginBottom: 5,
+                }}>
+                  Welcome to
+                </div>
+                <div style={{
+                  fontFamily: "var(--font-display, serif)",
+                  fontWeight: 900,
+                  fontSize: "clamp(24px, 7.5vw, 38px)",
+                  letterSpacing: "-0.01em",
+                  lineHeight: 1.1,
+                  color: "#EDD9B0",
+                  textShadow: "0 2px 16px rgba(0,0,0,0.8)",
+                }}>
+                  MY DIGITAL<br />OUTDOORS
+                </div>
+              </div>
+
+              {/* Enter button */}
+              <button
+                onClick={handleEnter}
+                style={{
+                  padding: "14px 44px",
+                  background: "#E05C00",
+                  border: "none",
+                  borderRadius: 40,
+                  fontFamily: "var(--font-display, serif)",
+                  fontWeight: 900,
+                  fontSize: 13,
+                  letterSpacing: "0.16em",
+                  textTransform: "uppercase" as const,
+                  color: "#fff",
+                  cursor: "pointer",
+                  boxShadow: "0 4px 20px rgba(0,0,0,0.5), 0 0 0 2px rgba(255,255,255,0.12) inset",
+                  WebkitTapHighlightColor: "transparent",
+                }}
+              >
+                Enter the Outdoors
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ════════════════════════════════════════════════════════
+          PHASE 1 — Hero overlay (on top, auto-fades after 2.5 s)
+          ════════════════════════════════════════════════════════ */}
+      <AnimatePresence>
+        {phase === "hero" && (
+          <motion.div
+            key="hero-overlay"
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.65, ease: "easeInOut" }}
+            style={{ position: "absolute", inset: 0, zIndex: 10 }}
+          >
+            {/* Same hero image (crisp, above the base layer) */}
+            <img
+              src="/hero-bg.png"
+              alt=""
+              draggable={false}
+              style={{
+                position: "absolute", inset: 0, width: "100%", height: "100%",
+                objectFit: "cover", objectPosition: "center top",
+                pointerEvents: "none",
+              }}
+            />
+
+            {/* Dark gradient over lower portion for text readability */}
+            <div style={{
+              position: "absolute", inset: 0,
+              background: "linear-gradient(to bottom, transparent 38%, rgba(0,0,0,0.72) 100%)",
+              pointerEvents: "none",
+            }} />
+
+            {/* Branding near bottom */}
+            <div style={{
+              position: "absolute",
+              bottom: "calc(env(safe-area-inset-bottom) + 72px)",
+              left: 0, right: 0,
+              textAlign: "center",
+              padding: "0 24px",
+            }}>
               <div style={{
-                position: "absolute", left: 0, right: 0, top: "50%",
-                height: 1, background: "rgba(0,0,0,0.18)", pointerEvents: "none",
-              }} />
-              {/* Nail heads */}
-              {([["10%","20%"],["90%","20%"],["10%","80%"],["90%","80%"]] as const).map(([l,t],i) => (
-                <div key={i} style={{
-                  position: "absolute", left: l, top: t,
-                  transform: "translate(-50%,-50%)",
-                  width: 5, height: 5, borderRadius: "50%",
-                  background: "radial-gradient(circle at 35% 35%, #888, #2A2A2A)",
-                  border: "1px solid #111",
-                }} />
-              ))}
+                fontSize: 11, fontWeight: 500,
+                letterSpacing: "0.24em",
+                textTransform: "uppercase" as const,
+                color: "rgba(237,217,176,0.70)",
+                marginBottom: 6,
+              }}>
+                Welcome to
+              </div>
               <div style={{
                 fontFamily: "var(--font-display, serif)",
-                fontWeight: 900, fontSize: "clamp(18px, 5vw, 26px)",
-                letterSpacing: "0.18em",
-                color: "#EDD9A0",
-                textShadow: "0 1px 6px rgba(0,0,0,0.8), 0 0 1px rgba(0,0,0,0.9)",
-                position: "relative", zIndex: 1,
+                fontWeight: 900,
+                fontSize: "clamp(28px, 8.5vw, 44px)",
+                letterSpacing: "-0.01em",
+                lineHeight: 1.1,
+                color: "#EDD9B0",
+                textShadow: "0 2px 22px rgba(0,0,0,0.85)",
               }}>
-                WELCOME
+                MY DIGITAL<br />OUTDOORS
               </div>
             </div>
-
-            {/* Tap to enter */}
-            <div style={{
-              fontSize: 11, fontWeight: 500,
-              letterSpacing: "0.2em",
-              textTransform: "uppercase" as const,
-              color: "rgba(232,210,168,0.42)",
-            }}>
-              tap to enter
-            </div>
           </motion.div>
-        </motion.div>
-      </div>
+        )}
+      </AnimatePresence>
 
-      {/* ── Footer links ── */}
+      {/* ── Footer links — visible in idle phase only ── */}
       <div style={{
         position: "fixed",
         bottom: "calc(env(safe-area-inset-bottom) + 10px)",
         left: 0, right: 0,
         display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
-        zIndex: 210,
-        pointerEvents: doorOpen ? "none" : "auto",
+        zIndex: 220,
+        opacity: phase === "idle" ? 1 : 0,
+        pointerEvents: phase === "idle" ? "auto" : "none",
+        transition: "opacity 0.4s ease",
       }}>
         <a
           href="https://classy-alpaca-441.notion.site/Privacy-Policy-39682db6065380b19dedcb108d4a0ef4"
