@@ -203,17 +203,8 @@ export default function WelcomePage({ onEnter }: Props) {
         background: "#060302",
       }}
     >
-      {/* ── Hero image — always behind everything ── */}
-      <img
-        src="/hero-bg.png"
-        alt=""
-        draggable={false}
-        style={{
-          position: "absolute", inset: 0, width: "100%", height: "100%",
-          objectFit: "cover", objectPosition: "center top",
-          pointerEvents: "none", userSelect: "none",
-        }}
-      />
+      {/* Solid black base — prevents any bleed-through during transitions */}
+      <div style={{ position: "absolute", inset: 0, background: "#060302" }} />
 
       {/* ════════════════════════════════════════════════════════
           PHASE 2 + 3 — Door scene (rendered behind hero overlay)
@@ -227,12 +218,8 @@ export default function WelcomePage({ onEnter }: Props) {
             transition={{ duration: 0.55, ease: "easeOut" }}
             style={{ position: "absolute", inset: 0 }}
           >
-            {/* Dark exterior — stays solid while door swings, fades only on exit */}
-            <motion.div
-              style={{ position: "absolute", inset: 0, background: "#040100", pointerEvents: "none" }}
-              animate={{ opacity: phase === "exiting" ? 0 : 0.92 }}
-              transition={{ duration: 0.5 }}
-            />
+            {/* Dark exterior — static, never animated; outer container handles the exit fade */}
+            <div style={{ position: "absolute", inset: 0, background: "#040100", opacity: 0.93, pointerEvents: "none" }} />
 
             {/* 3-D door swing */}
             <div style={{
