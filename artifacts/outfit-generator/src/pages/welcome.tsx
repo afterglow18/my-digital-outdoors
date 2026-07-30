@@ -227,11 +227,11 @@ export default function WelcomePage({ onEnter }: Props) {
             transition={{ duration: 0.55, ease: "easeOut" }}
             style={{ position: "absolute", inset: 0 }}
           >
-            {/* Dark exterior — fades as door opens */}
+            {/* Dark exterior — stays solid while door swings, fades only on exit */}
             <motion.div
               style={{ position: "absolute", inset: 0, background: "#040100", pointerEvents: "none" }}
-              animate={{ opacity: doorOpen ? 0 : 0.92 }}
-              transition={{ duration: 0.85, delay: 0.25 }}
+              animate={{ opacity: phase === "exiting" ? 0 : 0.92 }}
+              transition={{ duration: 0.5 }}
             />
 
             {/* 3-D door swing */}
@@ -309,7 +309,7 @@ export default function WelcomePage({ onEnter }: Props) {
                   WebkitTapHighlightColor: "transparent",
                 }}
               >
-                Enter the Outdoors
+                Enter
               </button>
             </motion.div>
           </motion.div>
