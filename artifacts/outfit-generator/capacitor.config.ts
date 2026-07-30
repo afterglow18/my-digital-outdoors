@@ -27,6 +27,8 @@ const config: CapacitorConfig = {
         'My Outdoors reads your photo library so you can add clothing photos to your wardrobe.',
       NSPhotoLibraryAddUsageDescription:
         'My Outdoors saves captured photos to your photo library.',
+      NSFaceIDUsageDescription:
+        'My Outdoors uses Face ID to keep your gear collection private.',
     },
   },
 
