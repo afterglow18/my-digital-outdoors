@@ -237,7 +237,7 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount, onC
     }
   }, [selected, cleanedBlob, originalBlob, category, existingCount, createItem, queryClient, onCreated, handleClose]);
 
-  // ── Batch save (multiple files — skips comparison, saves directly) ────────
+  // ── Batch save (multiple files — runs bg removal on each, then saves) ────
   const handleBatch = useCallback(async (files: File[]) => {
     setErrorMsg(null);
     setPhase("uploading");
@@ -248,7 +248,11 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount, onC
       setBatchProgress({ current: i + 1, total: files.length });
       try {
         const jpeg       = await encodeForUpload(files[i]);
-        const storageUrl = await toStorageDataUrl(jpeg);
+        // Run background removal on every photo, same as single-file flow
+        const dataUrl    = await blobToDataUrl(jpeg);
+        const resultUrl  = await removeBackground(dataUrl);
+        const cleanedBlob = await dataUrlToBlob(resultUrl);
+        const storageUrl = await toStorageDataUrl(cleanedBlob);
         const label      = CATEGORY_LABELS[category];
         const n          = existingCount + i + 1;
         const autoName   = n === 1 ? label : `${label} ${n}`;
@@ -369,7 +373,7 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount, onC
 
             {/* Multi-select hint */}
             <p className="text-center text-xs text-black/40 font-medium -mt-2">
-              Select one photo to preview &amp; remove background, or select multiple to save all at once.
+              Select one photo to preview &amp; remove background, or select multiple to clean &amp; save all at once.
             </p>
 
             {/* Photo tips */}
