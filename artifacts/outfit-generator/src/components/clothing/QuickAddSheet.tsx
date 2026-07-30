@@ -98,9 +98,9 @@ async function toStorageDataUrl(blob: Blob): Promise<string> {
 // ── Static content ─────────────────────────────────────────────────────────────
 
 const PHOTO_TIPS = [
-  "Lay everything flat on a plain background.",
-  "Take the photo from directly above.",
-  "Keep all items fully in frame.",
+  "Photograph one item or piece of equipment at a time.",
+  "Keep the entire item visible in the frame.",
+  "Use a clean, uncluttered background whenever possible.",
 ] as const;
 
 
