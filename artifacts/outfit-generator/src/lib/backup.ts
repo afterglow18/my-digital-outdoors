@@ -82,7 +82,7 @@ export async function exportBackup(): Promise<void> {
     const { Share } = await import("@capacitor/share");
     await Share.share({
       title: "My Digital Outdoors Backup",
-      text:  `Backup from ${dateStr} — ${clothing.length} items, ${outfits.length} outfits`,
+      text:  `Backup from ${dateStr} — ${clothing.length} items, ${outfits.length} kits`,
       url:   uri,
     });
   } else {

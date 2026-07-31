@@ -25,8 +25,8 @@ interface Props {
 // ── Copy ──────────────────────────────────────────────────────────────────────
 
 const FEATURES = [
-  "Unlimited clothing items",
-  "Unlimited saved outfits",
+  "Unlimited gear items",
+  "Unlimited saved kits",
   "Save all your gear",
   "One-time payment options",
   "Choose monthly, yearly or lifetime!",
@@ -40,7 +40,7 @@ const HEADLINES: Record<UpgradeReason, string> = {
 
 const SUBTITLES: Record<UpgradeReason, string> = {
   items:     "You've reached the free 20 item limit.\nUpgrade once, gear up forever.",
-  outfits:   "You've hit the free outfit limit. Upgrade to save every look.",
+  outfits:   "You've hit the free kit limit. Upgrade to save every kit.",
   mannequin: "A premium feature — unlock it once.",
 };
 

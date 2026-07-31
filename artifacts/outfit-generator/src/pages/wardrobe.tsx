@@ -356,7 +356,7 @@ export default function WardrobePage() {
           <button
             onClick={() => navigate("/favorites")}
             data-testid="button-person-icon"
-            aria-label="View saved looks"
+            aria-label="View saved kits"
             style={{
               position: "absolute",
               top:    pY(ir, 0.895),

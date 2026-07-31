@@ -163,7 +163,7 @@ export default function SavedPage() {
     <div className="min-h-full flex flex-col pt-8 px-4 pb-8 md:px-8 bg-secondary/10 relative">
       <div className="w-full max-w-3xl mx-auto">
       <header className="mb-6">
-        <h1 className="text-4xl font-display font-bold uppercase tracking-tighter mb-1">Lookbook</h1>
+        <h1 className="text-4xl font-display font-bold uppercase tracking-tighter mb-1">Kit Log</h1>
         <div className="flex items-center justify-between">
           <p className="font-medium text-muted-foreground text-sm">Hall of fame.</p>
 
@@ -197,7 +197,7 @@ export default function SavedPage() {
           </p>
           <p className="text-xs text-black/60 mt-1 mb-3 leading-snug">
             You've saved {FREE_OUTFIT_LIMIT} kits — the free limit.
-            Unlock Forever to save unlimited cases.
+            Unlock Forever to save unlimited kits.
           </p>
           <button
             onClick={() => setShowUpgrade(true)}
@@ -403,7 +403,7 @@ export default function SavedPage() {
                 {/* Footer: item count */}
                 <div className="px-3 pb-3">
                   <span className="text-[10px] font-bold uppercase text-muted-foreground tracking-wide">
-                    {outfit.items?.length ?? 0} product{(outfit.items?.length ?? 0) !== 1 ? "s" : ""}
+                    {outfit.items?.length ?? 0} item{(outfit.items?.length ?? 0) !== 1 ? "s" : ""}
                   </span>
                 </div>
               </motion.div>

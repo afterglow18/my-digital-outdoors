@@ -127,7 +127,7 @@ export function WardrobePickerSheet({ open, onOpenChange, category, onPick, exis
                       {alreadyIn && (
                         <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
                           <span className="text-white text-xs font-bold uppercase tracking-wide bg-black/60 px-1.5 py-0.5 rounded">
-                            In look
+                            In kit
                           </span>
                         </div>
                       )}
@@ -141,7 +141,7 @@ export function WardrobePickerSheet({ open, onOpenChange, category, onPick, exis
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center h-40 gap-3 text-center">
-              <span className="text-4xl">💄</span>
+              <span className="text-4xl">🎒</span>
               <p className="text-sm text-muted-foreground font-medium">
                 No {label.toLowerCase()} in your kit yet.
               </p>

@@ -400,12 +400,12 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
           label="Item Name"
           value={form.name}
           onChange={patch("name") as (v: string) => void}
-          placeholder="e.g. White Linen Shirt"
+          placeholder="e.g. Mountain Fleece Jacket"
         />
 
         {/* Brand + Color */}
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Brand"  value={form.brand} onChange={patch("brand") as (v: string) => void} placeholder="Nike, Zara…" />
+          <Field label="Brand"  value={form.brand} onChange={patch("brand") as (v: string) => void} placeholder="Nike, Patagonia…" />
           <Field label="Color"  value={form.color} onChange={patch("color") as (v: string) => void} placeholder="Navy Blue" />
         </div>
 
@@ -449,7 +449,7 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
             options={CATEGORY_OPTIONS}
           />
           <div className="flex flex-col gap-1 opacity-50 pointer-events-none">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-[#6B4A2A]/70">Times Worn</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-[#6B4A2A]/70">Times Used</span>
             <div className="border border-[#3A2210]/20 rounded-lg px-3 py-2 text-sm font-medium bg-[#FFFDF8]/60 text-[#2A1206]">
               {item.timesWorn ?? 0}
             </div>

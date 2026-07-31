@@ -18,8 +18,8 @@ interface Props {
 
 const PRO_FEATURES = [
   { emoji: "✅", text: "Everything in Unlock Forever" },
-  { emoji: "🧍", text: "360° Mannequin Look View" },
-  { emoji: "💄", text: "Dress a realistic mannequin with your saved looks" },
+  { emoji: "🧍", text: "360° Mannequin Kit View" },
+  { emoji: "🎒", text: "Dress a realistic mannequin with your saved kits" },
   { emoji: "🔄", text: "Rotate 360° — front, side, and back" },
   { emoji: "🚀", text: "Future Pro features included" },
 ] as const;
@@ -54,7 +54,7 @@ export function PremiumSheet({ onClose }: Props) {
       <div className="flex items-center justify-between px-4 bg-white border-b-2 border-black flex-shrink-0"
         style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))", paddingBottom: "0.75rem" }}>
         <h2 className="font-display font-bold text-xl uppercase tracking-tight">
-          Pro Stylist
+          Pro Trailblazer
         </h2>
         <button
           onClick={onClose}
@@ -73,12 +73,12 @@ export function PremiumSheet({ onClose }: Props) {
         <div className="border-4 border-black rounded-2xl bg-black text-white
                         shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
           <div className="px-5 pt-6 pb-5 flex flex-col gap-2">
-            <span className="text-5xl leading-none">👗</span>
+            <span className="text-5xl leading-none">🏕️</span>
             <p className="font-display font-bold text-3xl uppercase tracking-tight leading-tight mt-1">
               360° Mannequin
             </p>
             <p className="text-sm text-white/60 font-medium leading-snug">
-              Dress a realistic mannequin with your saved looks and see them from every angle.
+              Dress a realistic mannequin with your saved kits and see them from every angle.
             </p>
           </div>
         </div>
@@ -87,7 +87,7 @@ export function PremiumSheet({ onClose }: Props) {
         <div className="border-2 border-black rounded-2xl bg-white p-4
                         shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
           <p className="font-display font-bold text-sm uppercase tracking-tight mb-3">
-            Pro Stylist includes
+            Pro Trailblazer includes
           </p>
           <ul className="flex flex-col gap-3">
             {PRO_FEATURES.map(({ emoji, text }) => (
@@ -113,7 +113,7 @@ export function PremiumSheet({ onClose }: Props) {
                      active:translate-x-1 active:translate-y-1 active:shadow-none
                      disabled:opacity-60 disabled:cursor-not-allowed transition-all"
         >
-          {pending === "premium" ? "Opening checkout…" : "Get Pro Stylist – $9.99"}
+          {pending === "premium" ? "Opening checkout…" : "Get Pro Trailblazer – $9.99"}
         </button>
 
         {/* Secondary: Unlock Forever (if they just want unlimited without mannequin) */}

@@ -459,7 +459,7 @@ export default function GeneratePage() {
                   fontSize: 11, color: "#9a5060",
                   marginTop: 5, lineHeight: 1.5,
                 }}>
-                  Add outfits, beauty, toiletries or essentials in the Gear tab first.
+                  Add gear, equipment, supplies or accessories in the Gear tab first.
                 </p>
               </div>
             )}
