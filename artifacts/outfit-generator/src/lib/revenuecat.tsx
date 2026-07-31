@@ -96,15 +96,20 @@ function useSubscriptionContext() {
     queryFn: async () => {
       const Purchases = await getPurchases();
       if (!Purchases) return null;
-      const result = await Purchases.getOfferings();
+      // Race against a 12 s timeout so the paywall never hangs forever
+      // if RC hasn't finished initialising (race condition on first mount).
+      const result = await Promise.race([
+        Purchases.getOfferings(),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("RC getOfferings timeout")), 12000)
+        ),
+      ]);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (result as any).offerings ?? result ?? null;
     },
     staleTime: 300 * 1000,
-    // Retry a few times with backoff — RC may not be configured yet on first
-    // mount if initializeRevenueCat() hasn't resolved (race condition).
     retry: 3,
-    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 8000),
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 4000),
   });
 
   // ── Foreground + server-push listeners ─────────────────────────────────────
@@ -204,7 +209,7 @@ function useSubscriptionContext() {
     customerInfo:        customerInfoQuery.data ?? null,
     offerings:           offeringsQuery.data ?? null,
     isSubscribed,
-    isLoading:           customerInfoQuery.isLoading || offeringsQuery.isLoading,
+    isLoading:           customerInfoQuery.isLoading,
     isRefetching:        customerInfoQuery.isFetching,
     purchase:            purchaseMutation.mutateAsync,
     restore:             restoreMutation.mutateAsync,
