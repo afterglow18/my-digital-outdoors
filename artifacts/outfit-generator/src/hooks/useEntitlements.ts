@@ -6,8 +6,8 @@
  * of localStorage + Stripe Checkout.
  *
  * Tier mapping:
- *   no active entitlement  → "free"  (up to 20 items, 5 outfits)
- *   "premium" entitlement  → "unlock" (unlimited items + outfits)
+ *   no active entitlement              → "free"  (up to 20 items, 5 outfits)
+ *   "My Digital Outdoors Pro" entitlement → "unlock" (unlimited items + outfits)
  *
  * PurchaseResult:
  *   "success"     — subscription activated
