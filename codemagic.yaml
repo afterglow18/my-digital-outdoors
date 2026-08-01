@@ -54,6 +54,13 @@ workflows:
         script: |
           cd artifacts/outfit-generator
           rm -rf ios
+          # Resolve pnpm symlinks for RC plugin so Xcode can compile the Swift code
+          RC_PATH="node_modules/@revenuecat/purchases-capacitor"
+          if [ -L "$RC_PATH" ]; then
+            cp -rL "$RC_PATH" "${RC_PATH}-real"
+            rm "$RC_PATH"
+            mv "${RC_PATH}-real" "$RC_PATH"
+          fi
           npx cap add ios
           npx cap sync ios
 
