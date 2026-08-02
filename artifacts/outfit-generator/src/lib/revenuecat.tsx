@@ -43,59 +43,52 @@ function getApiKey(): string {
 
 // ── Initialization ────────────────────────────────────────────────────────────
 
-// Resolves once configure() has been dispatched AND a small grace period has
-// elapsed so the native SDK has time to finish initialising before the first
-// getOfferings() call goes out.  Exported so the query can await it.
-let _rcReadyResolve: (() => void) | null = null;
-export const rcReadyPromise: Promise<void> = new Promise<void>((resolve) => {
-  _rcReadyResolve = resolve;
-});
+// Singleton init promise — created once, returned on every subsequent call.
+// configure() is fire-and-forget; the promise resolves synchronously right
+// after the call is dispatched. The offerings query retry loop handles the
+// case where RC's native layer isn't warm yet.
+let _rcInitPromise: Promise<void> | null = null;
+export let _rcSettled = false;
 
-export async function initializeRevenueCat(): Promise<void> {
-  if (!Capacitor.isNativePlatform()) {
-    // In browser: resolve immediately so the query isn't blocked.
-    _rcReadyResolve?.();
-    return;
-  }
+export function initializeRevenueCat(): Promise<void> {
+  if (_rcInitPromise) return _rcInitPromise;
 
-  const apiKey = getApiKey();
-  console.log("[RC] initializeRevenueCat — apiKey prefix:", apiKey.slice(0, 12));
+  _rcInitPromise = new Promise<void>((resolve) => {
+    const isNative = Capacitor.isNativePlatform();
+    const pluginAvailable = Capacitor.isPluginAvailable("Purchases");
 
-  // ── Plugin availability check ──────────────────────────────────────────────
-  // If the pnpm symlink wasn't dereferenced during the Codemagic build, the
-  // RC Swift code never compiled into the binary — isPluginAvailable returns
-  // false and every Purchases.* call silently does nothing.
-  const pluginAvailable = Capacitor.isPluginAvailable("Purchases");
-  console.log("[RC] Capacitor.isPluginAvailable('Purchases'):", pluginAvailable);
-  if (!pluginAvailable) {
-    console.error("[RC] ❌ RC plugin NOT available — binary is missing the Swift code. Check Codemagic symlink-deref step.");
-  }
+    console.log("[RC] initializeRevenueCat — isNative:", isNative,
+      "pluginAvailable:", pluginAvailable);
 
-  // setLogLevel is fire-and-forget (non-critical)
-  void Purchases.setLogLevel({ level: LOG_LEVEL.DEBUG })
-    .then(() => console.log("[RC] setLogLevel ✓"))
-    .catch((e) => console.warn("[RC] setLogLevel failed:", e));
+    if (!isNative || !pluginAvailable) {
+      if (!isNative) console.log("[RC] browser env — skipping configure");
+      if (isNative && !pluginAvailable)
+        console.error("[RC] ❌ plugin NOT available — Swift code missing from binary. Check Codemagic symlink-deref step.");
+      resolve();
+      return;
+    }
 
-  // Fire-and-forget — do NOT await.
-  // The Swift→JS bridge response may never arrive on Capacitor + SPM.
-  // The native SDK initialises synchronously on message receipt regardless.
-  console.log("[RC] calling configure() fire-and-forget…");
-  void Purchases.configure({ apiKey })
-    .then(() => console.log("[RC] configure() response ✓"))
-    .catch((e) => console.error("[RC] configure() error:", e));
+    const apiKey = RC_IOS_KEY;
+    console.log("[RC] apiKey prefix:", apiKey.slice(0, 12));
 
-  // One microtask so the configure() message is dispatched to the native layer
-  // before we unblock the offerings query.
-  await Promise.resolve();
-  console.log("[RC] configure() dispatched — resolving rcReadyPromise now");
+    // Both fire-and-forget — the Swift→JS bridge response may never arrive
+    // on Capacitor + SPM. The native SDK initialises synchronously on receipt.
+    Purchases.setLogLevel({ level: LOG_LEVEL.DEBUG });
+    Purchases.configure({ apiKey });
 
-  // Resolve immediately — do NOT use setTimeout here.
-  // A delayed resolve means the queryFn hangs at `await rcReadyPromise` with
-  // failureCount:0 and no visible error. The retry logic already handles
-  // the case where RC isn't fully initialised yet: getOfferings() will throw
-  // and be retried up to 30 times with back-off.
-  _rcReadyResolve?.();
-  console.log("[RC] rcReadyPromise resolved — offerings query unblocked");
+    // Resolve immediately — configure() is synchronous on the native side.
+    // The React Query retry loop (25 s timeout, 30 retries) handles the window
+    // between this resolve and RC being fully ready.
+    console.log("[RC] configure() dispatched — resolving init promise");
+    resolve();
+  });
+
+  _rcInitPromise.then(() => {
+    _rcSettled = true;
+    console.log("[RC] _rcSettled = true — offerings query unblocked");
+  });
+
+  return _rcInitPromise;
 }
 
 // ── Query key ─────────────────────────────────────────────────────────────────
@@ -124,9 +117,8 @@ function useSubscriptionContext() {
     queryKey: ["revenuecat", "offerings"],
     queryFn: async () => {
       if (!Capacitor.isNativePlatform()) return null;
-      // Wait until configure() has been dispatched + 3 s grace period.
-      // Without this, getOfferings() races SDK init and times out every time.
-      await rcReadyPromise;
+      // Wait until configure() has been dispatched (singleton promise).
+      await initializeRevenueCat();
       console.log("[RC] getOfferings() attempt…");
       // 25 s timeout — iOS 26 + StoreKit cold-start can take 15-20 s on first
       // launch. The previous 8 s limit was causing our own timeout to fire
