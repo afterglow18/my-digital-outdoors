@@ -134,13 +134,18 @@ export function UpgradeSheet({ reason, onClose }: Props) {
     lifetime: getLivePrice(offerings, "$rc_lifetime", "$9.99"),
   };
 
+  // Gate on the selected package being present — not just customerInfo loading.
+  // The button shows "Loading Plans…" until RC's offerings arrive so the user
+  // can't tap before a package exists to purchase.
+  const selectedPkgReady = !!getRcPackage(offerings, TIER_DEFAULTS[selected].pkgId);
+
   const ctaLabel =
-    status === "pending"        ? "Opening…"
-    : status === "error"        ? "Tap to Try Again"
-    : isLoading                 ? "Loading Plans…"
-    : selected === "lifetime"   ? `UNLOCK FOREVER – ${prices.lifetime} ›`
-    : selected === "yearly"     ? `SUBSCRIBE – ${prices.yearly}/YR ›`
-    :                             `SUBSCRIBE – ${prices.monthly}/MO ›`;
+    status === "pending"          ? "Opening…"
+    : status === "error"          ? "Tap to Try Again"
+    : isLoading || !selectedPkgReady ? "Loading Plans…"
+    : selected === "lifetime"     ? `UNLOCK FOREVER – ${prices.lifetime} ›`
+    : selected === "yearly"       ? `SUBSCRIBE – ${prices.yearly}/YR ›`
+    :                               `SUBSCRIBE – ${prices.monthly}/MO ›`;
 
   const handlePurchase = useCallback(async () => {
     if (status === "pending") return;
@@ -292,7 +297,7 @@ export function UpgradeSheet({ reason, onClose }: Props) {
       >
         <button
           onClick={handlePurchase}
-          disabled={status === "pending"}
+          disabled={status === "pending" || (isLoading || !selectedPkgReady) && status !== "error"}
           className="w-full py-3.5 rounded-2xl font-display font-bold text-lg uppercase
                      tracking-tight border-[3px] border-black text-black
                      active:translate-x-0.5 active:translate-y-0.5 transition-all
