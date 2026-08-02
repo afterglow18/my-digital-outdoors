@@ -346,15 +346,6 @@ export function UpgradeSheet({ reason, onClose }: Props) {
           {ctaLabel}
         </button>
 
-        {/* Diagnostic — visible in TestFlight without Xcode.
-            Shows plugin availability + StoreKit error after 3 attempts. */}
-        {!productsReady && (pkgTimedOut || productsAttempts > 0 || !!productsError) && (
-          <p className="text-[10px] text-center text-red-600/70 leading-tight px-2 -mt-1 break-all">
-            plugin:{Capacitor.isPluginAvailable("Purchases") ? "✓" : "✗"}
-            {" · "}attempts:{productsAttempts}
-            {productsError ? ` · ${productsError.message}` : " · loading…"}
-          </p>
-        )}
 
         <div className="flex items-center justify-center gap-4">
           <button
