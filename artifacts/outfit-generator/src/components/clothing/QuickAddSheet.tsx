@@ -1,10 +1,11 @@
 /**
  * QuickAddSheet
  *
- * Upload flow with on-device background removal:
- *   pick ──(file chosen)──► encoding ──► preview (Original | Cleaned ✨) ──► uploading ──► close
+ * Single file upload flow:
+ *   pick ──► encoding ──► preview (Original | Cleaned ✨) ──► uploading ──► close
  *
- * For multiple files the preview phase repeats for each photo in sequence.
+ * Batch (multiple files) flow:
+ *   pick ──► batch-processing (spinner + progress) ──► batch-review (grid) ──► batch-saving ──► close
  *
  * IMPORTANT: phase blocks must NOT be wrapped in AnimatePresence.
  * Any AnimatePresence wrapper creates exit-animation windows where no child is
@@ -13,7 +14,7 @@
  */
 import React, { useRef, useState, useCallback } from "react";
 import { motion } from "framer-motion";
-import { X, Loader2, Check, RotateCcw } from "lucide-react";
+import { X, Loader2, Check, RotateCcw, XCircle, CheckCircle } from "lucide-react";
 import {
   useCreateClothingItem,
   getListClothingQueryKey,
@@ -33,7 +34,30 @@ const CATEGORY_LABELS: Record<Category, string> = {
   essentials: "Accessories",
 };
 
-type Phase = "pick" | "encoding" | "preview" | "uploading";
+type Phase =
+  | "pick"
+  | "encoding"
+  | "preview"
+  | "uploading"
+  | "batch-processing"
+  | "batch-review"
+  | "batch-saving";
+
+/** One entry in the batch review grid */
+type BatchResult = {
+  /** Encoded JPEG blob for upload */
+  originalBlob: Blob;
+  /** Object URL for display */
+  originalUrl: string;
+  /** Cleaned PNG blob, or null if removal failed / still running */
+  cleanedBlob: Blob | null;
+  /** Object URL for cleaned image display */
+  cleanedUrl: string | null;
+  /** Whether bg removal threw an error */
+  cleanFailed: boolean;
+  /** User's keep/discard toggle — defaults to true (approved) */
+  approved: boolean;
+};
 
 // ── Module-level helpers ────────────────────────────────────────────────────────
 
@@ -128,15 +152,22 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount, onC
   const [bgFailed,       setBgFailed]       = useState(false);
   const [selected,       setSelected]       = useState<"original" | "cleaned">("original");
 
-  // Batch queue — remaining files after the current one
+  // ── Batch review state ────────────────────────────────────────────────────
+  const [batchResults,        setBatchResults]        = useState<BatchResult[]>([]);
+  const [batchProcessedCount, setBatchProcessedCount] = useState(0);
+  const [batchTotal,          setBatchTotal]          = useState(0);
+
+  // Single-file batch queue (legacy path — kept for single-file advance logic)
   const batchQueueRef   = useRef<File[]>([]);
   const [batchIndex,    setBatchIndex]    = useState(0); // 1-based
-  const [batchTotal,    setBatchTotal]    = useState(0);
   const savedInBatchRef = useRef(0); // how many saved so far this session
 
   // Each photo bumps this counter. Every async step checks it before writing
   // state — prevents a slow first photo from clobbering a fast second one.
   const bgGenRef = useRef(0);
+
+  // Cancellation token for batch processing
+  const batchGenRef = useRef(0);
 
   const cameraInputRef  = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
@@ -146,8 +177,9 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount, onC
 
   // ── Reset / close ─────────────────────────────────────────────────────────
   const handleClose = useCallback(() => {
-    bgGenRef.current += 1;   // cancels any in-flight removal
-    setBgProcessing(false);  // MUST reset — close can happen mid-removal
+    bgGenRef.current   += 1;   // cancels any in-flight single-file removal
+    batchGenRef.current += 1;  // cancels any in-flight batch processing
+    setBgProcessing(false);
     setPhase("pick");
     setErrorMsg(null);
     setOriginalBlob(null);
@@ -160,14 +192,14 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount, onC
     setBatchIndex(0);
     setBatchTotal(0);
     savedInBatchRef.current = 0;
+    setBatchResults([]);
+    setBatchProcessedCount(0);
     onOpenChange(false);
   }, [onOpenChange]);
 
-  // ── Handle a single picked file ───────────────────────────────────────────
+  // ── Handle a single picked file (single-file flow) ────────────────────────
   const handleFile = useCallback(async (file: File | Blob) => {
     setErrorMsg(null);
-    // Switch to "encoding" BEFORE any async work so user sees a spinner
-    // immediately instead of sitting on the blank pick screen for 1–3 s.
     const myGen = ++bgGenRef.current;
     setOriginalBlob(null);
     setOriginalUrl(null);
@@ -178,7 +210,6 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount, onC
     setSelected("original");
     setPhase("encoding");
 
-    // Encode to JPEG ≤ 2048px
     let jpeg: Blob;
     try {
       jpeg = await encodeForUpload(file);
@@ -190,12 +221,10 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount, onC
     }
     if (bgGenRef.current !== myGen) return;
 
-    // Show original, switch to comparison screen
     setOriginalBlob(jpeg);
     setOriginalUrl(URL.createObjectURL(jpeg));
     setPhase("preview");
 
-    // Background removal — generation guard discards stale results
     setBgProcessing(true);
     try {
       const dataUrl   = await blobToDataUrl(jpeg);
@@ -217,7 +246,84 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount, onC
     }
   }, []);
 
-  // ── Advance to next queued photo, or close if done ────────────────────────
+  // ── Batch processing: encode + bg-remove all files, then show review grid ─
+  const handleBatch = useCallback(async (files: File[]) => {
+    const myGen = ++batchGenRef.current;
+    const total = files.length;
+    setBatchTotal(total);
+    setBatchProcessedCount(0);
+    setBatchResults([]);
+    savedInBatchRef.current = 0;
+    setPhase("batch-processing");
+
+    const results: BatchResult[] = [];
+
+    for (let i = 0; i < files.length; i++) {
+      if (batchGenRef.current !== myGen) return;
+
+      let jpeg: Blob;
+      try {
+        jpeg = await encodeForUpload(files[i]);
+      } catch (err) {
+        // Skip unreadable files; still count them as processed
+        console.warn(`Skipping file ${i}: ${err}`);
+        setBatchProcessedCount(i + 1);
+        continue;
+      }
+      if (batchGenRef.current !== myGen) return;
+
+      const origUrl = URL.createObjectURL(jpeg);
+      let cleanedBlob: Blob | null = null;
+      let cleanedUrl: string | null = null;
+      let cleanFailed = false;
+
+      try {
+        const dataUrl   = await blobToDataUrl(jpeg);
+        if (batchGenRef.current !== myGen) return;
+        const resultUrl = await removeBackground(dataUrl);
+        if (batchGenRef.current !== myGen) return;
+        const blob      = await dataUrlToBlob(resultUrl);
+        if (batchGenRef.current !== myGen) return;
+        cleanedBlob = blob;
+        cleanedUrl  = URL.createObjectURL(blob);
+      } catch (err) {
+        console.warn(`Background removal failed for file ${i}:`, err);
+        cleanFailed = true;
+      }
+
+      results.push({
+        originalBlob: jpeg,
+        originalUrl:  origUrl,
+        cleanedBlob,
+        cleanedUrl,
+        cleanFailed,
+        approved: true,
+      });
+
+      setBatchProcessedCount(i + 1);
+    }
+
+    if (batchGenRef.current !== myGen) return;
+
+    if (results.length === 0) {
+      // All files were unreadable
+      setErrorMsg("None of the selected photos could be read.");
+      setPhase("pick");
+      return;
+    }
+
+    setBatchResults(results);
+    setPhase("batch-review");
+  }, []);
+
+  // ── Toggle approved/rejected for a batch result ───────────────────────────
+  const toggleBatchApproval = useCallback((index: number) => {
+    setBatchResults(prev =>
+      prev.map((r, i) => i === index ? { ...r, approved: !r.approved } : r)
+    );
+  }, []);
+
+  // ── Advance to next queued photo, or close if done (single-file flow) ─────
   const advanceOrClose = useCallback(() => {
     const queue = batchQueueRef.current;
     if (queue.length > 0) {
@@ -253,7 +359,30 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount, onC
     });
   }, [category, existingCount, createItem, queryClient, onCreated]);
 
-  // ── Save selected (cleaned or original) ──────────────────────────────────
+  // ── Save all approved batch results ───────────────────────────────────────
+  const handleSaveBatch = useCallback(async () => {
+    const approved = batchResults.filter(r => r.approved);
+    if (approved.length === 0) {
+      // Nothing to save — just close
+      handleClose();
+      return;
+    }
+    setPhase("batch-saving");
+    setErrorMsg(null);
+    try {
+      for (const result of approved) {
+        // Prefer cleaned if available, fall back to original
+        const blob = result.cleanedBlob ?? result.originalBlob;
+        await persistBlob(blob);
+      }
+      handleClose();
+    } catch (err) {
+      setErrorMsg(`Save failed: ${err instanceof Error ? err.message : String(err)}`);
+      setPhase("batch-review");
+    }
+  }, [batchResults, persistBlob, handleClose]);
+
+  // ── Save selected (cleaned or original) — single-file flow ───────────────
   const handleSave = useCallback(async () => {
     const blob = selected === "cleaned" && cleanedBlob ? cleanedBlob : originalBlob;
     if (!blob) return;
@@ -267,10 +396,9 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount, onC
     }
   }, [selected, cleanedBlob, originalBlob, persistBlob, advanceOrClose]);
 
-  // ── Save original (bypass cleaning) ──────────────────────────────────────
+  // ── Save original (bypass cleaning) — single-file flow ───────────────────
   const handleSaveOriginal = useCallback(async () => {
     if (!originalBlob) return;
-    // cancel any in-flight bg removal for this photo
     bgGenRef.current += 1;
     setBgProcessing(false);
     setPhase("uploading");
@@ -294,21 +422,20 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount, onC
       savedInBatchRef.current = 0;
       handleFile(files[0]);
     } else {
-      // Multiple — queue them up, process one at a time through compare
-      batchQueueRef.current   = files.slice(1);
-      setBatchIndex(1);
-      setBatchTotal(files.length);
-      savedInBatchRef.current = 0;
-      handleFile(files[0]);
+      // Multiple — process all, then show review grid
+      handleBatch(files);
     }
     e.target.value = "";
   };
 
   if (!open) return null;
 
-  const label      = CATEGORY_LABELS[category];
-  const isBatch    = batchTotal > 1;
+  const label   = CATEGORY_LABELS[category];
+  const isBatch = batchTotal > 1;
   const isLastOrSingle = batchQueueRef.current.length === 0;
+
+  const approvedCount  = batchResults.filter(r => r.approved).length;
+  const rejectedCount  = batchResults.length - approvedCount;
 
   return (
     <motion.div
@@ -332,8 +459,18 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount, onC
               Photo {batchIndex} of {batchTotal}
             </p>
           )}
+          {phase === "batch-processing" && (
+            <p className="text-xs font-bold uppercase tracking-widest text-black/40 mt-0.5">
+              Processing {batchProcessedCount} of {batchTotal}…
+            </p>
+          )}
+          {phase === "batch-review" && (
+            <p className="text-xs font-bold uppercase tracking-widest text-black/40 mt-0.5">
+              Review {batchResults.length} photo{batchResults.length !== 1 ? "s" : ""}
+            </p>
+          )}
         </div>
-        {(phase === "pick" || phase === "preview") && (
+        {(phase === "pick" || phase === "preview" || phase === "batch-review") && (
           <button
             onClick={handleClose}
             className="w-9 h-9 border-2 border-black rounded-full flex items-center justify-center
@@ -391,7 +528,7 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount, onC
 
             {/* Multi-select hint */}
             <p className="text-center text-xs text-black/40 font-medium -mt-2">
-              Each photo gets its own background-removal preview before saving.
+              Select multiple photos for batch upload with review before saving.
             </p>
 
             {/* Photo tips */}
@@ -429,7 +566,7 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount, onC
           </div>
         )}
 
-        {/* ── PREVIEW — side-by-side comparison ── */}
+        {/* ── PREVIEW — side-by-side comparison (single file) ── */}
         {phase === "preview" && (
           <div className="flex flex-col gap-4 p-5">
             {errorMsg && (
@@ -570,7 +707,152 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount, onC
           </div>
         )}
 
-        {/* ── UPLOADING ── */}
+        {/* ── BATCH-PROCESSING — spinner + progress ── */}
+        {phase === "batch-processing" && (
+          <div className="flex-1 flex flex-col items-center justify-center gap-6 p-6">
+            <div className="w-28 h-28 border-4 border-black rounded-3xl bg-white
+                            flex items-center justify-center
+                            shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+              <Loader2 className="w-12 h-12 animate-spin" strokeWidth={1.5} />
+            </div>
+            <div className="text-center">
+              <p className="font-display font-bold text-2xl uppercase tracking-tight">
+                Cleaning Photos…
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">
+                {batchProcessedCount} of {batchTotal} done
+              </p>
+            </div>
+            {/* Progress bar */}
+            <div className="w-full max-w-[240px] h-3 bg-black/10 rounded-full overflow-hidden border border-black/20">
+              <div
+                className="h-full bg-black rounded-full transition-all duration-300"
+                style={{ width: batchTotal > 0 ? `${(batchProcessedCount / batchTotal) * 100}%` : "0%" }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* ── BATCH-REVIEW — grid with approve/reject toggles ── */}
+        {phase === "batch-review" && (
+          <div className="flex flex-col gap-4 p-4">
+            {errorMsg && (
+              <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-center">
+                {errorMsg}
+              </p>
+            )}
+
+            <p className="text-center font-bold text-[11px] uppercase tracking-[0.15em] text-black/40">
+              Tap a photo to approve or reject it
+            </p>
+
+            {/* Summary bar */}
+            <div className="flex gap-2 justify-center">
+              <span className="flex items-center gap-1 text-xs font-bold uppercase tracking-wide
+                               bg-black text-white px-3 py-1 rounded-full">
+                <CheckCircle className="w-3.5 h-3.5" />
+                {approvedCount} approved
+              </span>
+              {rejectedCount > 0 && (
+                <span className="flex items-center gap-1 text-xs font-bold uppercase tracking-wide
+                                 bg-black/10 text-black/50 px-3 py-1 rounded-full">
+                  <XCircle className="w-3.5 h-3.5" />
+                  {rejectedCount} rejected
+                </span>
+              )}
+            </div>
+
+            {/* Grid — 2 columns */}
+            <div className="grid grid-cols-2 gap-3">
+              {batchResults.map((result, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => toggleBatchApproval(idx)}
+                  className="relative rounded-2xl overflow-hidden transition-all focus:outline-none"
+                  style={{
+                    border: result.approved
+                      ? "3px solid black"
+                      : "3px solid rgba(0,0,0,0.15)",
+                    opacity: result.approved ? 1 : 0.45,
+                  }}
+                >
+                  {/* Image — prefer cleaned, fall back to original */}
+                  {result.cleanedUrl ? (
+                    <div
+                      style={{
+                        background: "repeating-conic-gradient(#d1d5db 0% 25%, white 0% 50%) 0 0 / 12px 12px",
+                        minHeight: 120,
+                      }}
+                    >
+                      <img
+                        src={result.cleanedUrl}
+                        alt={`Photo ${idx + 1} cleaned`}
+                        className="w-full object-contain block"
+                        style={{ maxHeight: 140 }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="bg-black" style={{ minHeight: 120 }}>
+                      <img
+                        src={result.originalUrl}
+                        alt={`Photo ${idx + 1}`}
+                        className="w-full object-contain block"
+                        style={{ maxHeight: 140 }}
+                      />
+                    </div>
+                  )}
+
+                  {/* Status badge */}
+                  <div
+                    className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full flex items-center justify-center"
+                    style={{ background: result.approved ? "black" : "rgba(0,0,0,0.3)" }}
+                  >
+                    {result.approved
+                      ? <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
+                      : <X className="w-3.5 h-3.5 text-white" strokeWidth={3} />
+                    }
+                  </div>
+
+                  {/* Label row */}
+                  <div className="bg-white py-1 px-2 flex items-center justify-between">
+                    <p className="font-bold text-[10px] uppercase tracking-wide text-black/60">
+                      {result.cleanedUrl ? "Cleaned ✨" : result.cleanFailed ? "Original" : "Original"}
+                    </p>
+                    <p className="font-bold text-[10px] uppercase tracking-wide"
+                       style={{ color: result.approved ? "black" : "rgba(0,0,0,0.35)" }}>
+                      {result.approved ? "Keep" : "Skip"}
+                    </p>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            {/* Save approved button */}
+            <div className="pt-1 pb-2">
+              <button
+                onClick={handleSaveBatch}
+                disabled={approvedCount === 0}
+                className="w-full flex items-center justify-center gap-2 py-4
+                           border-2 border-black rounded-xl bg-primary font-bold text-base uppercase tracking-wide
+                           shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]
+                           active:translate-x-[4px] active:translate-y-[4px] active:shadow-none
+                           transition-all disabled:opacity-40 disabled:pointer-events-none"
+              >
+                <Check className="w-5 h-5" />
+                {approvedCount === 0
+                  ? "No photos selected"
+                  : `Save ${approvedCount} photo${approvedCount !== 1 ? "s" : ""}`}
+              </button>
+              {approvedCount === 0 && (
+                <p className="text-center text-xs text-black/40 font-medium mt-2">
+                  Tap any photo above to approve it
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── UPLOADING — single-file save spinner ── */}
         {phase === "uploading" && (
           <div className="flex-1 flex flex-col items-center justify-center gap-5 p-6">
             <div className="w-28 h-28 border-4 border-black rounded-3xl bg-white
@@ -581,6 +863,23 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount, onC
             <div className="text-center">
               <p className="font-display font-bold text-2xl uppercase tracking-tight">Saving…</p>
               <p className="text-sm text-muted-foreground mt-1">Adding to your kit.</p>
+            </div>
+          </div>
+        )}
+
+        {/* ── BATCH-SAVING — bulk save spinner ── */}
+        {phase === "batch-saving" && (
+          <div className="flex-1 flex flex-col items-center justify-center gap-5 p-6">
+            <div className="w-28 h-28 border-4 border-black rounded-3xl bg-white
+                            flex items-center justify-center
+                            shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+              <Loader2 className="w-12 h-12 animate-spin" strokeWidth={1.5} />
+            </div>
+            <div className="text-center">
+              <p className="font-display font-bold text-2xl uppercase tracking-tight">Saving…</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Adding {approvedCount} photo{approvedCount !== 1 ? "s" : ""} to your kit.
+              </p>
             </div>
           </div>
         )}
@@ -596,7 +895,7 @@ export function QuickAddSheet({ open, onOpenChange, category, existingCount, onC
         className="hidden"
         onChange={handleInputChange}
       />
-      {/* Gallery — supports multiple; each goes through compare one at a time */}
+      {/* Gallery — supports multiple; single → compare, multiple → batch review */}
       <input
         ref={galleryInputRef}
         type="file"
