@@ -9,7 +9,7 @@
  *   $rc_annual    → Yearly   $19.99
  *   $rc_lifetime  → Lifetime $9.99 (one-time)
  */
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { X, Check } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -127,6 +127,8 @@ export function UpgradeSheet({ reason, onClose }: Props) {
   const qc = useQueryClient();
   const [selected, setSelected] = useState<TierId>("lifetime");
   const [status,   setStatus]   = useState<"idle" | "pending" | "error">("idle");
+  const [pkgTimedOut, setPkgTimedOut] = useState(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const prices: Record<TierId, string> = {
     monthly:  getLivePrice(offerings, "$rc_monthly",  "$1.99"),
@@ -139,18 +141,43 @@ export function UpgradeSheet({ reason, onClose }: Props) {
   // can't tap before a package exists to purchase.
   const selectedPkgReady = !!getRcPackage(offerings, TIER_DEFAULTS[selected].pkgId);
 
+  // After 15 s, if packages still haven't loaded, flip to "Tap to Retry" so
+  // the user isn't permanently stuck on "Loading Plans…".
+  useEffect(() => {
+    if (selectedPkgReady) {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      setPkgTimedOut(false);
+      return;
+    }
+    setPkgTimedOut(false);
+    timeoutRef.current = setTimeout(() => {
+      setPkgTimedOut(true);
+      console.warn("[Paywall] 15 s elapsed — offerings still not ready, showing retry");
+    }, 15_000);
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, [selectedPkgReady]);
+
   const ctaLabel =
-    status === "pending"          ? "Opening…"
-    : status === "error"          ? "Tap to Try Again"
-    : isLoading || !selectedPkgReady ? "Loading Plans…"
-    : selected === "lifetime"     ? `UNLOCK FOREVER – ${prices.lifetime} ›`
-    : selected === "yearly"       ? `SUBSCRIBE – ${prices.yearly}/YR ›`
-    :                               `SUBSCRIBE – ${prices.monthly}/MO ›`;
+    status === "pending"                        ? "Opening…"
+    : status === "error"                        ? "Tap to Try Again"
+    : pkgTimedOut                               ? "Tap to Retry"
+    : isLoading || !selectedPkgReady            ? "Loading Plans…"
+    : selected === "lifetime"                   ? `UNLOCK FOREVER – ${prices.lifetime} ›`
+    : selected === "yearly"                     ? `SUBSCRIBE – ${prices.yearly}/YR ›`
+    :                                             `SUBSCRIBE – ${prices.monthly}/MO ›`;
 
   const handlePurchase = useCallback(async () => {
     if (status === "pending") return;
     // If showing a previous error, reset and let user retry
     if (status === "error") { setStatus("idle"); return; }
+    // If timed out, trigger a fresh offerings fetch and reset the timer
+    if (pkgTimedOut) {
+      setPkgTimedOut(false);
+      qc.invalidateQueries({ queryKey: ["revenuecat", "offerings"] });
+      return;
+    }
     if (isLoading) return;
     setStatus("pending");
 
@@ -297,7 +324,7 @@ export function UpgradeSheet({ reason, onClose }: Props) {
       >
         <button
           onClick={handlePurchase}
-          disabled={status === "pending" || (isLoading || !selectedPkgReady) && status !== "error"}
+          disabled={status === "pending" || (!pkgTimedOut && (isLoading || !selectedPkgReady) && status !== "error")}
           className="w-full py-3.5 rounded-2xl font-display font-bold text-lg uppercase
                      tracking-tight border-[3px] border-black text-black
                      active:translate-x-0.5 active:translate-y-0.5 transition-all

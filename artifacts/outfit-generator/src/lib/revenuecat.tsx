@@ -43,8 +43,20 @@ function getApiKey(): string {
 
 // ── Initialization ────────────────────────────────────────────────────────────
 
+// Resolves once configure() has been dispatched AND a small grace period has
+// elapsed so the native SDK has time to finish initialising before the first
+// getOfferings() call goes out.  Exported so the query can await it.
+let _rcReadyResolve: (() => void) | null = null;
+export const rcReadyPromise: Promise<void> = new Promise<void>((resolve) => {
+  _rcReadyResolve = resolve;
+});
+
 export async function initializeRevenueCat(): Promise<void> {
-  if (!Capacitor.isNativePlatform()) return;
+  if (!Capacitor.isNativePlatform()) {
+    // In browser: resolve immediately so the query isn't blocked.
+    _rcReadyResolve?.();
+    return;
+  }
 
   const apiKey = getApiKey();
   console.log("[RC] initializeRevenueCat — apiKey prefix:", apiKey.slice(0, 12));
@@ -64,6 +76,14 @@ export async function initializeRevenueCat(): Promise<void> {
 
   await Promise.resolve(); // one microtask so the message is dispatched
   console.log("[RC] configure() dispatched — SDK initialising natively");
+
+  // Give the native SDK 3 s to finish initialising before the first
+  // getOfferings() attempt.  Without this delay, getOfferings() races
+  // configure() and times out every time on cold launch.
+  setTimeout(() => {
+    console.log("[RC] rcReadyPromise resolved — SDK should be ready");
+    _rcReadyResolve?.();
+  }, 3000);
 }
 
 // ── Query key ─────────────────────────────────────────────────────────────────
@@ -92,6 +112,9 @@ function useSubscriptionContext() {
     queryKey: ["revenuecat", "offerings"],
     queryFn: async () => {
       if (!Capacitor.isNativePlatform()) return null;
+      // Wait until configure() has been dispatched + 3 s grace period.
+      // Without this, getOfferings() races SDK init and times out every time.
+      await rcReadyPromise;
       console.log("[RC] getOfferings() attempt…");
       // 8 s per-attempt timeout — short enough that retries happen quickly
       // if RC hasn't finished initialising yet.
