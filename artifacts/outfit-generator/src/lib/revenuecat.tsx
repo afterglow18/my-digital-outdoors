@@ -132,32 +132,39 @@ function useSubscriptionContext() {
           ),
         ]);
       } catch (err) {
-        // Stringify the full error so the real StoreKit / RC message is visible
-        // in Xcode console AND in the on-screen diagnostic.
+        // Use console.error so it's visible at the top of Xcode console logs.
+        // Stringify the full object — RC errors often carry extra fields beyond .message.
         const msg = err instanceof Error
           ? `${err.message} | ${JSON.stringify(err)}`
           : JSON.stringify(err);
-        console.warn("[RC] getOfferings() failed:", msg);
-        // Re-throw a plain Error so .message carries the detail to the UI.
+        console.error("[RC] getOfferings error:", msg);
+        // Re-throw a plain Error so .message carries the detail to the UI diagnostic.
         throw new Error(msg);
       }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const data = (result as any).offerings ?? result ?? null;
       console.log("[RC] getOfferings() result — current:", data?.current?.identifier ?? "null",
-        "packages:", data?.current?.availablePackages?.length ?? 0);
+        "packages:", data?.current?.availablePackages?.length ?? 0,
+        "all:", Object.keys((result as any)?.all ?? {}).join(", ") || "none");
       // Treat empty/null as an error so React Query retries rather than
       // caching null as a successful "no offerings" result.
-      if (!data?.current) throw new Error("RC offerings not ready");
+      if (!data?.current) {
+        const emptyMsg = `RC offerings empty — current:null all:${JSON.stringify((result as any)?.all ?? {})}`;
+        console.error("[RC] getOfferings error:", emptyMsg);
+        throw new Error(emptyMsg);
+      }
       return data;
     },
     staleTime: 300 * 1000,
-    // Keep retrying — RC configure() can take 10-30 s on first cold launch.
-    retry: 30,
+    // Stop after 3 failures so the real error surfaces in the UI diagnostic
+    // instead of spinning forever. The "Tap to Retry" button lets the user
+    // kick off a fresh attempt once the underlying issue is fixed.
+    retry: 3,
     retryDelay: (attempt) => Math.min(2000 * attempt, 6000),
-    // Also poll every 5 s while we have no data (covers the case where
-    // retries are exhausted but the SDK initialises late).
+    // Also poll every 10 s after retries are exhausted in case the SDK
+    // initialises late (e.g. slow network on first launch).
     refetchInterval: (query) =>
-      Capacitor.isNativePlatform() && !query.state.data ? 5000 : false,
+      Capacitor.isNativePlatform() && !query.state.data ? 10000 : false,
   });
 
   // ── Foreground + server-push listeners ─────────────────────────────────────
