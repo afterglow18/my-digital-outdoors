@@ -1,13 +1,14 @@
 /**
  * UpgradeSheet — three-tier paywall (Monthly / Yearly / Lifetime).
  *
- * Single-screen, no scroll. Lifetime pre-selected as "Best Value".
- * All accent colour uses bg-primary (burnt orange hsl(24 100% 44%)).
+ * Uses Purchases.getProducts() directly with hardcoded ASC product IDs —
+ * bypasses the RC offerings/packages layer entirely so StoreKit is hit
+ * without any intermediate RC config dependency.
  *
- * RC package identifiers expected in the default offering:
- *   $rc_monthly   → Monthly  $1.99
- *   $rc_annual    → Yearly   $19.99
- *   $rc_lifetime  → Lifetime $9.99 (one-time)
+ * ASC product IDs:
+ *   22_monthly  → Monthly  $1.99
+ *   23_yearly   → Yearly   $19.99
+ *   24_lifetime → Lifetime $9.99 (one-time)
  */
 import React, { useState, useCallback, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
@@ -33,6 +34,7 @@ const FEATURES = [
   "One-time payment options",
   "Choose monthly, yearly or lifetime!",
 ] as const;
+void FEATURES;
 
 const HEADLINES: Record<UpgradeReason, string> = {
   items:     "UNLOCK YOUR UNLIMITED OUTDOOR KIT",
@@ -46,36 +48,35 @@ const SUBTITLES: Record<UpgradeReason, string> = {
   mannequin: "A premium feature — unlock it once.",
 };
 
-// Fallback tier defs (browser — RC not available)
-const TIER_DEFAULTS: Record<TierId, {
-  label: string;
-  price: string;
-  period: string;
-  notes: [string, string];
-  pkgId: string;
-  best?: true;
+// ── Tier config ───────────────────────────────────────────────────────────────
+// productId must match the ASC In-App Purchase identifier exactly.
+
+const TIER_CONFIG: Record<TierId, {
+  label:     string;
+  fallback:  string;   // shown while StoreKit loads
+  period:    string;
+  notes:     [string, string];
+  productId: string;   // ASC product identifier
+  best?:     true;
 }> = {
-  monthly:  { label: "MONTHLY",  price: "$1.99",  period: "/month",   notes: ["Cancel anytime",  "Billed monthly"],  pkgId: "$rc_monthly"  },
-  yearly:   { label: "YEARLY",   price: "$19.99", period: "/year",    notes: ["Save 17%",        "Billed yearly"],   pkgId: "$rc_annual"   },
-  lifetime: { label: "LIFETIME", price: "$9.99",  period: "one-time", notes: ["Pay once",        "Yours forever"],   pkgId: "$rc_lifetime", best: true },
+  monthly:  { label: "MONTHLY",  fallback: "$1.99",  period: "/month",   notes: ["Cancel anytime", "Billed monthly"], productId: "22_monthly"  },
+  yearly:   { label: "YEARLY",   fallback: "$19.99", period: "/year",    notes: ["Save 17%",       "Billed yearly"],  productId: "23_yearly"   },
+  lifetime: { label: "LIFETIME", fallback: "$9.99",  period: "one-time", notes: ["Pay once",       "Yours forever"],  productId: "24_lifetime", best: true },
 };
 
 const TIER_ORDER: TierId[] = ["monthly", "yearly", "lifetime"];
 
-// ── RC helpers ────────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function getRcPackage(offerings: any, pkgId: string): any | undefined {
-  return offerings?.current?.availablePackages?.find(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (p: any) => p.identifier === pkgId,
-  );
+function findProduct(products: unknown[] | null, productId: string): any | null {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (products ?? []).find((p: any) => p.identifier === productId) ?? null;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function getLivePrice(offerings: any, pkgId: string, fallback: string): string {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (getRcPackage(offerings, pkgId) as any)?.product?.priceString ?? fallback;
+function livePrice(products: unknown[] | null, productId: string, fallback: string): string {
+  return findProduct(products, productId)?.priceString ?? fallback;
 }
 
 // ── Tier card ─────────────────────────────────────────────────────────────────
@@ -124,33 +125,33 @@ function TierCard({
 // ── Sheet ─────────────────────────────────────────────────────────────────────
 
 export function UpgradeSheet({ reason, onClose }: Props) {
-  const { offerings, offeringsError, offeringsAttempts, purchase, restore, isRestoring, isLoading } = useSubscription();
+  const {
+    products, productsError, productsAttempts,
+    purchase, restore, isRestoring, isLoading,
+  } = useSubscription();
   const qc = useQueryClient();
-  const [selected, setSelected] = useState<TierId>("lifetime");
-  const [status,   setStatus]   = useState<"idle" | "pending" | "error">("idle");
+
+  const [selected,    setSelected]    = useState<TierId>("lifetime");
+  const [status,      setStatus]      = useState<"idle" | "pending" | "error">("idle");
   const [pkgTimedOut, setPkgTimedOut] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // True once StoreKit has returned at least the selected product.
+  const selectedProduct = findProduct(products, TIER_CONFIG[selected].productId);
+  const productsReady   = !!selectedProduct;
+
   const prices: Record<TierId, string> = {
-    monthly:  getLivePrice(offerings, "$rc_monthly",  "$1.99"),
-    yearly:   getLivePrice(offerings, "$rc_annual",   "$19.99"),
-    lifetime: getLivePrice(offerings, "$rc_lifetime", "$9.99"),
+    monthly:  livePrice(products, "22_monthly",  "$1.99"),
+    yearly:   livePrice(products, "23_yearly",   "$19.99"),
+    lifetime: livePrice(products, "24_lifetime", "$9.99"),
   };
 
-  // Gate on the selected package being present — not just customerInfo loading.
-  // The button shows "Loading Plans…" until RC's offerings arrive so the user
-  // can't tap before a package exists to purchase.
-  const selectedPkgReady = !!getRcPackage(offerings, TIER_DEFAULTS[selected].pkgId);
-
-  // After 30 s, if packages still haven't loaded AND at least one attempt has
-  // failed, flip to "Tap to Retry". We wait for a failure (attempts > 0) so we
-  // don't interrupt a slow-but-in-progress first attempt (which can take 20-25 s
-  // on iOS 26 due to StoreKit cold-start). If the first attempt is still running
-  // we keep showing "Loading Plans…" even after the timer fires.
-  const showRetry = pkgTimedOut && (offeringsAttempts > 0 || !!offeringsError);
+  // After 30 s without products, flip to "Tap to Retry" — but only if at
+  // least one attempt has been made (so we don't cut off a slow first fetch).
+  const showRetry = pkgTimedOut && (productsAttempts > 0 || !!productsError);
 
   useEffect(() => {
-    if (selectedPkgReady) {
+    if (productsReady) {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
       setPkgTimedOut(false);
       return;
@@ -158,57 +159,60 @@ export function UpgradeSheet({ reason, onClose }: Props) {
     setPkgTimedOut(false);
     timeoutRef.current = setTimeout(() => {
       setPkgTimedOut(true);
-      console.warn("[Paywall] 30 s elapsed — offerings still not ready");
+      console.warn("[Paywall] 30 s elapsed — StoreKit products still not ready");
     }, 30_000);
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
-  }, [selectedPkgReady]);
+  }, [productsReady]);
 
   const ctaLabel =
-    status === "pending"                        ? "Opening…"
-    : status === "error"                        ? "Tap to Try Again"
-    : showRetry                                 ? "Tap to Retry"
-    : isLoading || !selectedPkgReady            ? "Loading Plans…"
-    : selected === "lifetime"                   ? `UNLOCK FOREVER – ${prices.lifetime} ›`
-    : selected === "yearly"                     ? `SUBSCRIBE – ${prices.yearly}/YR ›`
-    :                                             `SUBSCRIBE – ${prices.monthly}/MO ›`;
+    status === "pending"                   ? "Opening…"
+    : status === "error"                   ? "Tap to Try Again"
+    : showRetry                            ? "Tap to Retry"
+    : isLoading || !productsReady          ? "Loading Plans…"
+    : selected === "lifetime"              ? `UNLOCK FOREVER – ${prices.lifetime} ›`
+    : selected === "yearly"               ? `SUBSCRIBE – ${prices.yearly}/YR ›`
+    :                                        `SUBSCRIBE – ${prices.monthly}/MO ›`;
 
   const handlePurchase = useCallback(async () => {
     if (status === "pending") return;
-    // If showing a previous error, reset and let user retry
     if (status === "error") { setStatus("idle"); return; }
-    // If showing retry, trigger a fresh offerings fetch and reset the timer
     if (showRetry) {
       setPkgTimedOut(false);
-      qc.invalidateQueries({ queryKey: ["revenuecat", "offerings"] });
+      qc.invalidateQueries({ queryKey: ["revenuecat", "products"] });
       return;
     }
     if (isLoading) return;
     setStatus("pending");
 
-    // If offerings haven't arrived yet, kick off a refetch and wait up to 8 s
-    // polling the query cache every 500 ms. This is the common case on first open
-    // before RC's getOfferings() response has come back from the network.
-    let pkg = getRcPackage(offerings, TIER_DEFAULTS[selected].pkgId);
-    if (!pkg) {
-      qc.invalidateQueries({ queryKey: ["revenuecat", "offerings"] });
+    // Grab product from cache; if not there yet kick a refetch and wait up to 8 s.
+    let product = findProduct(
+      qc.getQueryData<unknown[]>(["revenuecat", "products"]) ?? null,
+      TIER_CONFIG[selected].productId,
+    );
+    if (!product) {
+      qc.invalidateQueries({ queryKey: ["revenuecat", "products"] });
       let waited = 0;
-      while (!pkg && waited < 8000) {
+      while (!product && waited < 8000) {
         await new Promise<void>(r => setTimeout(r, 500));
         waited += 500;
-        const fresh = qc.getQueryData(["revenuecat", "offerings"]);
-        pkg = getRcPackage(fresh, TIER_DEFAULTS[selected].pkgId);
+        product = findProduct(
+          qc.getQueryData<unknown[]>(["revenuecat", "products"]) ?? null,
+          TIER_CONFIG[selected].productId,
+        );
       }
     }
 
-    if (!pkg) {
-      console.error("[Paywall] No RC package found after waiting — offerings:", offerings, "tier:", selected);
+    if (!product) {
+      console.error("[Paywall] StoreKit product not found after waiting — tier:", selected,
+        "productId:", TIER_CONFIG[selected].productId);
       setStatus("error");
       return;
     }
+
     try {
-      await purchase(pkg);
+      await purchase(product);
       onClose();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message.toLowerCase() : "";
@@ -219,7 +223,7 @@ export function UpgradeSheet({ reason, onClose }: Props) {
         setStatus("error");
       }
     }
-  }, [status, isLoading, offerings, selected, purchase, onClose, qc]);
+  }, [status, isLoading, selected, purchase, onClose, qc, showRetry]);
 
   // CSS plaid pattern — burnt orange base with dark cross-bands and fine thread lines
   const plaidBg = [
@@ -303,7 +307,7 @@ export function UpgradeSheet({ reason, onClose }: Props) {
           </p>
           <div className="flex gap-2">
             {TIER_ORDER.map((id) => {
-              const t = TIER_DEFAULTS[id];
+              const t = TIER_CONFIG[id];
               return (
                 <TierCard
                   key={id}
@@ -330,7 +334,7 @@ export function UpgradeSheet({ reason, onClose }: Props) {
       >
         <button
           onClick={handlePurchase}
-          disabled={status === "pending" || (!showRetry && (isLoading || !selectedPkgReady) && status !== "error")}
+          disabled={status === "pending" || (!showRetry && (isLoading || !productsReady) && status !== "error")}
           className="w-full py-3.5 rounded-2xl font-display font-bold text-lg uppercase
                      tracking-tight border-[3px] border-black text-black
                      active:translate-x-0.5 active:translate-y-0.5 transition-all
@@ -342,15 +346,13 @@ export function UpgradeSheet({ reason, onClose }: Props) {
           {ctaLabel}
         </button>
 
-        {/* Diagnostic panel — visible in TestFlight without Xcode attached.
-            Shows plugin status + real RC/StoreKit error message. */}
-        {/* Diagnostic — always visible while packages haven't loaded so we can
-            read the status from a TestFlight screenshot without Xcode. */}
-        {!selectedPkgReady && (pkgTimedOut || offeringsAttempts > 0 || !!offeringsError) && (
+        {/* Diagnostic — visible in TestFlight without Xcode.
+            Shows plugin availability + StoreKit error after 3 attempts. */}
+        {!productsReady && (pkgTimedOut || productsAttempts > 0 || !!productsError) && (
           <p className="text-[10px] text-center text-red-600/70 leading-tight px-2 -mt-1 break-all">
             plugin:{Capacitor.isPluginAvailable("Purchases") ? "✓" : "✗"}
-            {" · "}attempts:{offeringsAttempts}
-            {offeringsError ? ` · ${offeringsError.message}` : " · loading…"}
+            {" · "}attempts:{productsAttempts}
+            {productsError ? ` · ${productsError.message}` : " · loading…"}
           </p>
         )}
 

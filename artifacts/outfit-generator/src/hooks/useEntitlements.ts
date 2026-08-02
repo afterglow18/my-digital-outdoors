@@ -26,7 +26,7 @@ export type PurchaseProduct = "unlock" | "premium"; // kept for call-site compat
 export function setGlobalTier(_t: Tier): void { /* no-op */ }
 
 export function useEntitlements() {
-  const { isSubscribed, offerings, purchase: rcPurchase, isPurchasing } =
+  const { isSubscribed, products, purchase: rcPurchase, isPurchasing } =
     useSubscription();
 
   // Both "unlock" and "premium" products now map to the RC "unlock" tier.
@@ -45,11 +45,15 @@ export function useEntitlements() {
 
   const purchase = useCallback(
     async (_product: PurchaseProduct): Promise<PurchaseResult> => {
-      const pkg = offerings?.current?.availablePackages?.[0];
-      if (!pkg) return "unavailable";
+      // Use the first available StoreKit product (lifetime preferred, else first)
+      const storeProduct = (products ?? []).find(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (p: any) => p.identifier === "24_lifetime"
+      ) ?? products?.[0];
+      if (!storeProduct) return "unavailable";
 
       try {
-        await rcPurchase(pkg);
+        await rcPurchase(storeProduct);
         return "success";
       } catch (err: unknown) {
         // RevenueCat throws with userCancelled flag on user dismiss
@@ -61,7 +65,7 @@ export function useEntitlements() {
         return "unavailable";
       }
     },
-    [offerings, rcPurchase],
+    [products, rcPurchase],
   );
 
   return { tier, caps, canAddItem, canSaveOutfit, purchase, isPurchasing };

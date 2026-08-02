@@ -113,56 +113,42 @@ function useSubscriptionContext() {
     retry: false,
   });
 
-  const offeringsQuery = useQuery({
-    queryKey: ["revenuecat", "offerings"],
+  // ── Direct product fetch — bypasses the offerings layer entirely ──────────────
+  // Calls StoreKit directly with the three known product IDs. Simpler, faster,
+  // and doesn't depend on RC's offerings/packages pipeline being warm.
+  const PRODUCT_IDS = ["22_monthly", "23_yearly", "24_lifetime"] as const;
+
+  const productsQuery = useQuery({
+    queryKey: ["revenuecat", "products"],
     queryFn: async () => {
       if (!Capacitor.isNativePlatform()) return null;
-      // Wait until configure() has been dispatched (singleton promise).
       await initializeRevenueCat();
-      console.log("[RC] getOfferings() attempt…");
-      // 25 s timeout — iOS 26 + StoreKit cold-start can take 15-20 s on first
-      // launch. The previous 8 s limit was causing our own timeout to fire
-      // before StoreKit even responded, hiding the real error from RC.
-      let result: unknown;
+      console.log("[RC] getProducts() attempt — ids:", PRODUCT_IDS.join(", "));
       try {
-        result = await Promise.race([
-          Purchases.getOfferings(),
+        const { products } = await Promise.race([
+          Purchases.getProducts({ productIdentifiers: [...PRODUCT_IDS] }),
           new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error("RC getOfferings timeout (25s)")), 25000)
+            setTimeout(() => reject(new Error("RC getProducts timeout (25s)")), 25000)
           ),
         ]);
+        console.log("[RC] getProducts() returned", products.length, "products:",
+          products.map((p: { identifier: string; priceString: string }) =>
+            `${p.identifier}=${p.priceString}`).join(", ") || "none");
+        if (!products.length) {
+          throw new Error(`StoreKit returned 0 products for [${PRODUCT_IDS.join(", ")}] — check ASC In-App Purchases status`);
+        }
+        return products;
       } catch (err) {
-        // Use console.error so it's visible at the top of Xcode console logs.
-        // Stringify the full object — RC errors often carry extra fields beyond .message.
         const msg = err instanceof Error
           ? `${err.message} | ${JSON.stringify(err)}`
           : JSON.stringify(err);
-        console.error("[RC] getOfferings error:", msg);
-        // Re-throw a plain Error so .message carries the detail to the UI diagnostic.
+        console.error("[RC] getProducts error:", msg);
         throw new Error(msg);
       }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const data = (result as any).offerings ?? result ?? null;
-      console.log("[RC] getOfferings() result — current:", data?.current?.identifier ?? "null",
-        "packages:", data?.current?.availablePackages?.length ?? 0,
-        "all:", Object.keys((result as any)?.all ?? {}).join(", ") || "none");
-      // Treat empty/null as an error so React Query retries rather than
-      // caching null as a successful "no offerings" result.
-      if (!data?.current) {
-        const emptyMsg = `RC offerings empty — current:null all:${JSON.stringify((result as any)?.all ?? {})}`;
-        console.error("[RC] getOfferings error:", emptyMsg);
-        throw new Error(emptyMsg);
-      }
-      return data;
     },
     staleTime: 300 * 1000,
-    // Stop after 3 failures so the real error surfaces in the UI diagnostic
-    // instead of spinning forever. The "Tap to Retry" button lets the user
-    // kick off a fresh attempt once the underlying issue is fixed.
     retry: 3,
     retryDelay: (attempt) => Math.min(2000 * attempt, 6000),
-    // Also poll every 10 s after retries are exhausted in case the SDK
-    // initialises late (e.g. slow network on first launch).
     refetchInterval: (query) =>
       Capacitor.isNativePlatform() && !query.state.data ? 10000 : false,
   });
@@ -213,9 +199,9 @@ function useSubscriptionContext() {
 
   // ── Purchase ───────────────────────────────────────────────────────────────
   const purchaseMutation = useMutation({
-    mutationFn: async (pkg: unknown) => {
+    mutationFn: async (product: unknown) => {
       if (!Capacitor.isNativePlatform()) throw new Error("Purchases not available in browser");
-      const { customerInfo } = await Purchases.purchasePackage({ aPackage: pkg as never });
+      const { customerInfo } = await Purchases.purchaseStoreProduct({ product: product as never });
       return customerInfo;
     },
     onSuccess: (customerInfo) => {
@@ -255,11 +241,10 @@ function useSubscriptionContext() {
 
   return {
     customerInfo:        customerInfoQuery.data ?? null,
-    offerings:           offeringsQuery.data ?? null,
-    // failureReason = error from the most recent failed attempt, even while
-    // retrying. offeringsQuery.error is null until all retries are exhausted.
-    offeringsError:      (offeringsQuery.failureReason ?? offeringsQuery.error) as Error | null,
-    offeringsAttempts:   offeringsQuery.failureCount,
+    // Direct StoreKit products — bypasses offerings layer
+    products:            (productsQuery.data ?? null) as unknown[] | null,
+    productsError:       (productsQuery.failureReason ?? productsQuery.error) as Error | null,
+    productsAttempts:    productsQuery.failureCount,
     isSubscribed,
     isLoading:           customerInfoQuery.isLoading,
     isRefetching:        customerInfoQuery.isFetching,
