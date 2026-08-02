@@ -14,7 +14,6 @@ import React, { useState, useCallback, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { X, Check } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Capacitor } from "@capacitor/core";
 import { useSubscription } from "@/lib/revenuecat";
 
 export type UpgradeReason = "items" | "outfits" | "mannequin";
