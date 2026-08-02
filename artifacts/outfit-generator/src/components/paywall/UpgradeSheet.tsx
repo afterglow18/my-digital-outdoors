@@ -123,7 +123,7 @@ function TierCard({
 // ── Sheet ─────────────────────────────────────────────────────────────────────
 
 export function UpgradeSheet({ reason, onClose }: Props) {
-  const { offerings, purchase, restore, isRestoring, isLoading } = useSubscription();
+  const { offerings, offeringsError, offeringsAttempts, purchase, restore, isRestoring, isLoading } = useSubscription();
   const qc = useQueryClient();
   const [selected, setSelected] = useState<TierId>("lifetime");
   const [status,   setStatus]   = useState<"idle" | "pending" | "error">("idle");
@@ -335,6 +335,14 @@ export function UpgradeSheet({ reason, onClose }: Props) {
         >
           {ctaLabel}
         </button>
+
+        {/* Diagnostic: show RC error text on-screen when packages fail to load.
+            Visible in TestFlight without needing Xcode attached. */}
+        {pkgTimedOut && offeringsError && (
+          <p className="text-[10px] text-center text-red-600/70 leading-tight px-2 -mt-1">
+            RC error ({offeringsAttempts} attempts): {offeringsError.message}
+          </p>
+        )}
 
         <div className="flex items-center justify-center gap-4">
           <button

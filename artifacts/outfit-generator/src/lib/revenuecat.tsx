@@ -61,6 +61,16 @@ export async function initializeRevenueCat(): Promise<void> {
   const apiKey = getApiKey();
   console.log("[RC] initializeRevenueCat — apiKey prefix:", apiKey.slice(0, 12));
 
+  // ── Plugin availability check ──────────────────────────────────────────────
+  // If the pnpm symlink wasn't dereferenced during the Codemagic build, the
+  // RC Swift code never compiled into the binary — isPluginAvailable returns
+  // false and every Purchases.* call silently does nothing.
+  const pluginAvailable = Capacitor.isPluginAvailable("Purchases");
+  console.log("[RC] Capacitor.isPluginAvailable('Purchases'):", pluginAvailable);
+  if (!pluginAvailable) {
+    console.error("[RC] ❌ RC plugin NOT available — binary is missing the Swift code. Check Codemagic symlink-deref step.");
+  }
+
   // setLogLevel is fire-and-forget (non-critical)
   void Purchases.setLogLevel({ level: LOG_LEVEL.DEBUG })
     .then(() => console.log("[RC] setLogLevel ✓"))
@@ -238,6 +248,8 @@ function useSubscriptionContext() {
   return {
     customerInfo:        customerInfoQuery.data ?? null,
     offerings:           offeringsQuery.data ?? null,
+    offeringsError:      offeringsQuery.error as Error | null,
+    offeringsAttempts:   offeringsQuery.failureCount,
     isSubscribed,
     isLoading:           customerInfoQuery.isLoading,
     isRefetching:        customerInfoQuery.isFetching,
