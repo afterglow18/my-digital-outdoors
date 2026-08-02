@@ -227,7 +227,7 @@ export default function SavedPage() {
           ref={searchInputRef}
           value={searchQuery}
           onChange={(e) => handleSearchChange(e.target.value)}
-          placeholder="Search…"
+          placeholder="Search by name, category, or notes…"
           className="w-full pl-9 pr-9 py-2.5 rounded-xl border-2 border-black bg-white
                      font-medium text-sm placeholder:text-black/30
                      outline-none focus:ring-2 focus:ring-primary
