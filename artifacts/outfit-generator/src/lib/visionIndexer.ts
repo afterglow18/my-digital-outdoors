@@ -20,7 +20,6 @@
  */
 
 import { Capacitor } from "@capacitor/core";
-import { toast } from "sonner";
 import { listItemsNeedingVisionIndex, updateVisionFields } from "@/lib/localDB";
 import { extractColorLabels } from "@/lib/visionWeb";
 import { analyzeImageNative } from "@/lib/visionNative";
@@ -63,8 +62,6 @@ async function runQueue(items: Array<{ id: number; imageObjectPath: string }>): 
   if (running || items.length === 0) return;
   running = true;
 
-  const toastId = toast.loading("Preparing photo search…", { duration: Infinity });
-
   try {
     for (const item of items) {
       if (!item.imageObjectPath) continue;
@@ -79,7 +76,6 @@ async function runQueue(items: Array<{ id: number; imageObjectPath: string }>): 
     }
   } finally {
     running = false;
-    toast.dismiss(toastId);
   }
 }
 
