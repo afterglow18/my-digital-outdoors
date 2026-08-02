@@ -11,7 +11,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  X, Heart, Trash2, Save, ChevronDown, Loader2, Wand2, Footprints, Bookmark,
+  X, Heart, Trash2, Save, ChevronDown, Loader2, Wand2,
 } from "lucide-react";
 import { removeBackground } from "@/lib/backgroundRemoval";
 import { BgRemovalSheet } from "./BgRemovalSheet";
@@ -149,9 +149,6 @@ export function ItemDetailsSheet({
   const [form, setForm]                   = useState<FormState | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  // ── Wearing Today ────────────────────────────────────────────────────────────
-  const [wornToday, setWornToday] = useState(false);
-
   // ── Add to Kit sheet ─────────────────────────────────────────────────────────
   const [showLookbookPicker, setShowLookbookPicker] = useState(false);
 
@@ -175,24 +172,7 @@ export function ItemDetailsSheet({
     setBgFailed(false);
     setShowBgSheet(false);
     setLocalImageUrl(null);
-    setWornToday(false);
   }, [item?.id]);
-
-  // ── Wearing Today ──────────────────────────────────────────────────────────
-  const handleWearingToday = useCallback(() => {
-    if (!item || wornToday) return;
-    setWornToday(true);
-    updateItem.mutate(
-      { id: item.id, data: { timesWorn: (item.timesWorn ?? 0) + 1 } },
-      {
-        onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: getListClothingQueryKey() });
-          queryClient.invalidateQueries({ queryKey: getWardrobeStatsQueryKey() });
-          toast.success("Worn today! 🥾");
-        },
-      }
-    );
-  }, [item, wornToday, updateItem, queryClient]);
 
   // ── Background removal ─────────────────────────────────────────────────────
   const handleRemoveBg = useCallback(async () => {
@@ -368,41 +348,22 @@ export function ItemDetailsSheet({
         </div>
       )}
 
-      {/* ── Action bar — always shown, exactly 2 buttons ── */}
-      <div className={`flex flex-shrink-0 ${item.imageObjectPath ? "" : "border-t border-[#3A2210]/15"}`}
-           style={{ borderBottom: "1px solid rgba(58,34,16,0.15)" }}>
-        {/* Left: Wearing Today */}
-        <button
-          onClick={handleWearingToday}
-          disabled={wornToday}
-          className="flex-1 py-2.5 flex items-center justify-center gap-1.5
-                     text-[11px] font-bold uppercase tracking-wider
-                     disabled:opacity-60 active:bg-[#F0E8D8] transition-colors"
-          style={{ color: wornToday ? "#6B9E6B" : "#6B4A2A" }}
-        >
-          <Footprints className="w-3.5 h-3.5" />
-          {wornToday ? "Worn Today ✓" : "Wearing Today"}
-        </button>
-
-        {/* Divider */}
-        <div className="w-px" style={{ background: "rgba(58,34,16,0.15)" }} />
-
-        {/* Right: context button */}
-        {showAddToLookbook ? (
-          <button
-            onClick={() => setShowLookbookPicker(true)}
-            className="flex-1 py-2.5 flex items-center justify-center gap-1.5
-                       text-[11px] font-bold uppercase tracking-wider text-[#6B4A2A]
-                       active:bg-[#F0E8D8] transition-colors"
-          >
-            <Bookmark className="w-3.5 h-3.5" />
-            Add to Kit
-          </button>
-        ) : item.imageObjectPath ? (
-          bgFailed ? (
+      {/* ── Action bar — shown when there's something to act on ── */}
+      {(showAddToLookbook || item.imageObjectPath) && (
+        <div className="flex-shrink-0 border-b border-[#3A2210]/15">
+          {showAddToLookbook ? (
+            <button
+              onClick={() => setShowLookbookPicker(true)}
+              className="w-full py-2.5 flex items-center justify-center gap-1.5
+                         text-[11px] font-bold uppercase tracking-wider text-[#6B4A2A]
+                         active:bg-[#F0E8D8] transition-colors"
+            >
+              🏕️ Add to Kit
+            </button>
+          ) : bgFailed ? (
             <button
               onClick={handleRemoveBg}
-              className="flex-1 py-2.5 flex items-center justify-center gap-1.5
+              className="w-full py-2.5 flex items-center justify-center gap-1.5
                          text-[11px] font-bold uppercase tracking-wider text-red-600
                          active:bg-muted transition-colors"
             >
@@ -413,19 +374,16 @@ export function ItemDetailsSheet({
             <button
               onClick={handleRemoveBg}
               disabled={bgRemoving || !!localImageUrl}
-              className="flex-1 py-2.5 flex items-center justify-center gap-1.5
+              className="w-full py-2.5 flex items-center justify-center gap-1.5
                          text-[11px] font-bold uppercase tracking-wider text-[#6B4A2A]
                          disabled:opacity-40 active:bg-[#F0E8D8] transition-colors"
             >
               <Wand2 className="w-3.5 h-3.5" />
               {bgRemoving ? "Removing…" : localImageUrl ? "Cleaned ✨" : "Clean Up Photo ✨"}
             </button>
-          )
-        ) : (
-          // No photo + not showing lookbook picker → empty right slot
-          <div className="flex-1" />
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
       {/* ── Form ── */}
       <div className="flex-1 px-4 py-5 flex flex-col gap-4">

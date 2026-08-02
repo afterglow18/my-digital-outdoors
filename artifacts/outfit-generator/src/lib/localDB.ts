@@ -244,7 +244,8 @@ export async function updateVisionFields(
 
 /**
  * Return items that still need vision indexing for the current platform.
- * - Native: visionVersion === 0 (never analyzed)
+ * - Native: visionVersion < 2  (catches 0=never analyzed, 1=old iOS-only pass
+ *                               that lacked color labels; re-indexes those items)
  * - Web:    visionVersion < 4  (catches 0, 1, 2, 3; skips 4=done, 5=tried+empty)
  *
  * Only returns items that have an image to analyze.
@@ -255,7 +256,7 @@ export async function listItemsNeedingVisionIndex(isNative: boolean): Promise<Cl
   return all.filter((item) => {
     if (!item.imageObjectPath) return false;
     const v = item.visionVersion ?? 0;
-    return isNative ? v === 0 : v < 4;
+    return isNative ? v < 2 : v < 4;
   }) as ClothingItem[];
 }
 

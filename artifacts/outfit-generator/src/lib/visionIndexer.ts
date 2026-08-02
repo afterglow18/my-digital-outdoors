@@ -5,8 +5,9 @@
  * them one-at-a-time with a 350 ms delay so the UI stays responsive.
  *
  * Platform behaviour:
- *   iOS native  — uses VisionAnalyzer Capacitor plugin (VNClassifyImageRequest
- *                 + VNRecognizeTextRequest).  Sets visionVersion = 1.
+ *   iOS native  — runs VisionAnalyzer plugin (object labels + OCR text) AND
+ *                 canvas color extraction in parallel, then merges the label
+ *                 arrays.  Sets visionVersion = 2.
  *   Browser/web — extracts dominant colors via a 48×48 canvas.
  *                 Sets visionVersion = 4 (labels found) or 5 (no labels).
  *
@@ -35,11 +36,18 @@ let started  = false;
 
 async function processItem(id: number, imageDataUrl: string): Promise<void> {
   if (isNative) {
-    const { labels, text } = await analyzeImageNative(imageDataUrl);
+    // Run Vision object/OCR analysis and canvas color extraction in parallel.
+    // Apple's VNClassifyImageRequest returns object types ("shoe", "high heel")
+    // but never color names — canvas extraction fills that gap.
+    const [{ labels: visionLabels, text }, colorLabels] = await Promise.all([
+      analyzeImageNative(imageDataUrl),
+      extractColorLabels(imageDataUrl).catch(() => [] as string[]),
+    ]);
+    const merged = Array.from(new Set([...visionLabels, ...colorLabels]));
     await updateVisionFields(id, {
-      visionLabels:  labels,
+      visionLabels:  merged,
       visionText:    text,
-      visionVersion: 1,
+      visionVersion: 2,
     });
   } else {
     const labels = await extractColorLabels(imageDataUrl);

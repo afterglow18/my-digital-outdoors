@@ -8,16 +8,17 @@ Each `StoredClothingItem` carries a `visionVersion` number:
 
 | Value | Meaning                          |
 |-------|----------------------------------|
-| 0     | Unanalyzed (default)             |
-| 1     | iOS VisionKit (native)           |
-| 4     | Web canvas — labels found        |
-| 5     | Web canvas — tried, no labels    |
+| 0     | Unanalyzed (default)                               |
+| 1     | Old iOS-only pass — no color labels (stale)        |
+| 2     | iOS native + canvas merged (current native target) |
+| 4     | Web canvas — labels found                          |
+| 5     | Web canvas — tried, no labels                      |
 
 `listItemsNeedingVisionIndex(isNative)`:
-- Native: `visionVersion === 0` only
-- Web: `visionVersion < 4` (re-analyzes native-analyzed items with web canvas if labels missing)
+- Native: `v < 2` — catches v0 (never indexed) and v1 (old iOS pass missing color labels)
+- Web:    `v < 4` — unchanged
 
-**Why:** iOS `VNClassifyImageRequest` gives richer object labels; the web canvas fallback only extracts color names. Keeping separate version numbers lets each platform re-analyze items the other missed without re-processing finished ones.
+**Why:** Apple `VNClassifyImageRequest` returns object types ("shoe", "high heel") but never color names. Canvas extraction runs in parallel on native too (via `Promise.all`) and the label arrays are merged before saving. v1 items from a previous build only have object labels; bumping the threshold to `< 2` triggers a one-time re-index on next app open so those items get color labels added.
 
 ## Indexer lifecycle
 - `startVisionIndexer()` — call once from `AppShell` `useEffect`. Guards against double-start with a `started` boolean.
@@ -37,11 +38,6 @@ Each `StoredClothingItem` carries a `visionVersion` number:
 - Optimistic local state for checkmarks; resolves against the real outfit data after mutation.
 - Uses `useAddItemToOutfit` / `useRemoveItemFromOutfit` hooks.
 - Pass `showAddToLookbook={true}` from search results / Kit Log; `false` (default) from main wardrobe.
-
-## Wearing Today
-- `ItemDetailsSheet` action bar always shows 2 buttons: "Wearing Today" + context button.
-- "Wearing Today" increments `timesWorn`, shows sonner toast "Worn today! 🥾", sets `wornToday` local state for the session.
-- Button becomes "Worn Today ✓" and disables after tap.
 
 ## Codemagic VisionAnalyzer injection
 Step name: "Inject VisionAnalyzer native plugin" — runs after "Capacitor add iOS and sync".
