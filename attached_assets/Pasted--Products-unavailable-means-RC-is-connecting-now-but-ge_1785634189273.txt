@@ -1,0 +1,45 @@
+"Products unavailable" means RC is connecting now but getOfferings() is failing — likely the same root causes. Here's everything we fixed in order of importance:
+
+Fix 1 — Static import (the critical one)
+
+In the RC file, replace any dynamic import with a static top-level import:
+
+// Remove this pattern anywhere in the file:
+// const mod = await import("@revenuecat/purchases-capacitor");
+// Replace with at the top of the file:
+import { Purchases, LOG_LEVEL } from "@revenuecat/purchases-capacitor";
+Vite turns import() into a lazy chunk that silently hangs in Capacitor's WKWebView. configure() is never called. RC shows "SDK key never used".
+
+Fix 2 — Fire-and-forget configure() and setLogLevel()
+
+Never await either — the Swift→JS bridge response may never arrive on Capacitor 8 + SPM:
+
+void Purchases.setLogLevel({ level: LOG_LEVEL.DEBUG })
+  .then(() => console.log("[RC] setLogLevel ✓"))
+  .catch((e) => console.warn("[RC] setLogLevel failed:", e));
+void Purchases.configure({ apiKey })
+  .then(() => console.log("[RC] configure() response ✓"))
+  .catch((e) => console.error("[RC] configure() error:", e));
+await Promise.resolve(); // one microtask tick before marking ready
+Fix 3 — Codemagic build script (before npx cap add ios)
+
+pnpm symlinks prevent Xcode's SPM from compiling the RC Swift code:
+
+RC_PATH="node_modules/@revenuecat/purchases-capacitor"
+if [ -L "$RC_PATH" ]; then
+  cp -rL "$RC_PATH" "${RC_PATH}-real"
+  rm "$RC_PATH"
+  mv "${RC_PATH}-real" "$RC_PATH"
+fi
+Fix 4 — Call initializeRevenueCat() at app startup in main.tsx
+
+Not lazily inside a component:
+
+import { initializeRevenueCat } from './lib/revenuecat';
+initializeRevenueCat().catch(console.warn);
+Fix 5 — Hardcode the RC key, don't use the env var
+
+The Codemagic env group may have a different app's key:
+
+const RC_IOS_KEY = "appl_YOUR_KEY_HERE"; // hardcoded, not from import.meta.env
+For My Digital Garage specifically — since it shows "Products unavailable" (offerings failing) rather than a blank button, Fix 1 + 2 + 3 are the most likely culprits. Apply all five, trigger a new build.
