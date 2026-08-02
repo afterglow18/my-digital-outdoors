@@ -71,6 +71,34 @@ workflows:
           npx cap add ios
           npx cap sync ios
 
+      - name: Inject VisionAnalyzer native plugin
+        script: |
+          PLUGIN_SRC="artifacts/outfit-generator/ios-plugins/VisionAnalyzer"
+          APP_DIR="artifacts/outfit-generator/ios/App/App"
+
+          # Copy Swift + ObjC bridge files into the Xcode project folder
+          cp "$PLUGIN_SRC/VisionPlugin.swift" "$APP_DIR/VisionPlugin.swift"
+          cp "$PLUGIN_SRC/VisionPlugin.m"     "$APP_DIR/VisionPlugin.m"
+
+          # Install xcodeproj gem if not already present
+          gem list xcodeproj -i || gem install xcodeproj --no-document
+
+          # Add the files to the Xcode target so the compiler picks them up
+          ruby - <<'RUBY'
+          require 'xcodeproj'
+          proj_path = 'artifacts/outfit-generator/ios/App/App.xcodeproj'
+          proj   = Xcodeproj::Project.open(proj_path)
+          target = proj.targets.find { |t| t.name == 'App' }
+          group  = proj.main_group.find_subpath('App', false)
+
+          %w[VisionPlugin.swift VisionPlugin.m].each do |fname|
+            next if group.files.any? { |f| f.path == fname }
+            ref = group.new_file(fname)
+            target.source_build_phase.add_file_reference(ref)
+          end
+          proj.save
+          RUBY
+
       - name: Inject app icon
         script: |
           ICONSET="artifacts/outfit-generator/ios/App/App/Assets.xcassets/AppIcon.appiconset"

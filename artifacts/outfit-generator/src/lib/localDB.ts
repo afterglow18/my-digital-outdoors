@@ -222,6 +222,43 @@ export async function removeItemFromOutfit(outfitId: number, itemId: number): Pr
   if (match?.id != null) await db.delete("outfit_items", match.id);
 }
 
+// ── Vision indexing ───────────────────────────────────────────────────────────
+
+/** Write vision analysis results back to an item. */
+export async function updateVisionFields(
+  id: number,
+  fields: { visionLabels: string[]; visionText: string[]; visionVersion: number },
+): Promise<void> {
+  const db       = await getDB();
+  const existing = await db.get("clothing_items", id) as StoredClothingItem | undefined;
+  if (!existing) return;
+  await db.put("clothing_items", {
+    ...existing,
+    id,
+    visionLabels:  fields.visionLabels,
+    visionText:    fields.visionText,
+    visionVersion: fields.visionVersion,
+    updatedAt:     new Date().toISOString(),
+  });
+}
+
+/**
+ * Return items that still need vision indexing for the current platform.
+ * - Native: visionVersion === 0 (never analyzed)
+ * - Web:    visionVersion < 4  (catches 0, 1, 2, 3; skips 4=done, 5=tried+empty)
+ *
+ * Only returns items that have an image to analyze.
+ */
+export async function listItemsNeedingVisionIndex(isNative: boolean): Promise<ClothingItem[]> {
+  const db  = await getDB();
+  const all = (await db.getAll("clothing_items")) as StoredClothingItem[];
+  return all.filter((item) => {
+    if (!item.imageObjectPath) return false;
+    const v = item.visionVersion ?? 0;
+    return isNative ? v === 0 : v < 4;
+  }) as ClothingItem[];
+}
+
 // ── Settings ──────────────────────────────────────────────────────────────────
 
 export async function getSetting(key: string): Promise<string | null> {

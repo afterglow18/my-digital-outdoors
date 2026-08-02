@@ -2,14 +2,20 @@
  * ItemDetailsSheet — full-screen overlay showing a clothing item's details.
  * Every field is optional and editable. A "Save" button appears only when
  * the form is dirty. Delete is always available.
+ *
+ * Props:
+ *   showAddToLookbook — when true, shows "Add to Kit" instead of "Clean Up Photo"
+ *                       as the second action button. Pass true from search results
+ *                       and favorites; false (default) from the main wardrobe.
  */
 import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  X, Heart, Trash2, Save, ChevronDown, Loader2, Wand2,
+  X, Heart, Trash2, Save, ChevronDown, Loader2, Wand2, Footprints, Bookmark,
 } from "lucide-react";
 import { removeBackground } from "@/lib/backgroundRemoval";
 import { BgRemovalSheet } from "./BgRemovalSheet";
+import { AddToLookbookSheet } from "./AddToLookbookSheet";
 import {
   type ClothingItem,
   type ClothingItemUpdateCategory,
@@ -21,6 +27,7 @@ import {
 } from "@/hooks/useLocalDB";
 import { useQueryClient } from "@tanstack/react-query";
 import { getImageUrl } from "@/lib/utils";
+import { toast } from "sonner";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -34,17 +41,10 @@ const CATEGORY_OPTIONS  = [
 ];
 
 function Field({
-  label,
-  value,
-  onChange,
-  placeholder,
-  type = "text",
+  label, value, onChange, placeholder, type = "text",
 }: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  type?: string;
+  label: string; value: string; onChange: (v: string) => void;
+  placeholder?: string; type?: string;
 }) {
   return (
     <div className="flex flex-col gap-1">
@@ -65,14 +65,9 @@ function Field({
 }
 
 function SelectField({
-  label,
-  value,
-  onChange,
-  options,
+  label, value, onChange, options,
 }: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
+  label: string; value: string; onChange: (v: string) => void;
   options: Array<string | { value: string; label: string }>;
 }) {
   return (
@@ -103,23 +98,17 @@ function SelectField({
 // ── Component ─────────────────────────────────────────────────────────────────
 
 interface ItemDetailsSheetProps {
-  item: ClothingItem | null;
-  onClose: () => void;
-  onDeleted?: () => void;
+  item:              ClothingItem | null;
+  onClose:           () => void;
+  onDeleted?:        () => void;
+  /** When true: "Add to Kit" replaces "Clean Up Photo" as the second action button. */
+  showAddToLookbook?: boolean;
 }
 
 interface FormState {
-  name: string;
-  brand: string;
-  color: string;
-  size: string;
-  season: string;
-  occasion: string;
-  purchasePrice: string;
-  purchaseDate: string;
-  notes: string;
-  isFavorite: boolean;
-  category: string;
+  name: string; brand: string; color: string; size: string;
+  season: string; occasion: string; purchasePrice: string;
+  purchaseDate: string; notes: string; isFavorite: boolean; category: string;
 }
 
 function toForm(item: ClothingItem): FormState {
@@ -154,28 +143,30 @@ function isDirty(form: FormState, item: ClothingItem): boolean {
   );
 }
 
-export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetProps) {
+export function ItemDetailsSheet({
+  item, onClose, onDeleted, showAddToLookbook = false,
+}: ItemDetailsSheetProps) {
   const [form, setForm]                   = useState<FormState | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  // ── Wearing Today ────────────────────────────────────────────────────────────
+  const [wornToday, setWornToday] = useState(false);
+
+  // ── Add to Kit sheet ─────────────────────────────────────────────────────────
+  const [showLookbookPicker, setShowLookbookPicker] = useState(false);
 
   // ── Background removal state ──────────────────────────────────────────────
   const [bgRemoving,    setBgRemoving]    = useState(false);
   const [bgPreviewDUrl, setBgPreviewDUrl] = useState<string | null>(null);
   const [bgFailed,      setBgFailed]      = useState(false);
   const [showBgSheet,   setShowBgSheet]   = useState(false);
-  /** Optimistic image URL — set immediately on user confirm, before DB write finishes. */
   const [localImageUrl, setLocalImageUrl] = useState<string | null>(null);
 
   const updateItem  = useUpdateClothingItem();
   const deleteItem  = useDeleteClothingItem();
   const queryClient = useQueryClient();
+  const bgGenRef    = React.useRef(0);
 
-  // Generation counter — must be above the early return to satisfy Rules of Hooks.
-  // Incremented each time a new removal starts so a stale result can't overwrite
-  // a choice the user already made.
-  const bgGenRef = React.useRef(0);
-
-  // Reset form + bg state whenever item changes
   useEffect(() => {
     if (item) setForm(toForm(item));
     setShowDeleteConfirm(false);
@@ -184,18 +175,33 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
     setBgFailed(false);
     setShowBgSheet(false);
     setLocalImageUrl(null);
+    setWornToday(false);
   }, [item?.id]);
 
-  // ── Background removal handlers (must be above early return — Rules of Hooks) ──
+  // ── Wearing Today ──────────────────────────────────────────────────────────
+  const handleWearingToday = useCallback(() => {
+    if (!item || wornToday) return;
+    setWornToday(true);
+    updateItem.mutate(
+      { id: item.id, data: { timesWorn: (item.timesWorn ?? 0) + 1 } },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getListClothingQueryKey() });
+          queryClient.invalidateQueries({ queryKey: getWardrobeStatsQueryKey() });
+          toast.success("Worn today! 🥾");
+        },
+      }
+    );
+  }, [item, wornToday, updateItem, queryClient]);
+
+  // ── Background removal ─────────────────────────────────────────────────────
   const handleRemoveBg = useCallback(async () => {
     if (!item?.imageObjectPath) return;
     setBgFailed(false);
     setBgPreviewDUrl(null);
     setShowBgSheet(true);
     setBgRemoving(true);
-
     const gen = ++bgGenRef.current;
-
     try {
       const source        = localImageUrl ?? item.imageObjectPath;
       const resultDataUrl = await removeBackground(source);
@@ -228,11 +234,10 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
     );
   }, [item?.id, updateItem, queryClient]);
 
-  // ── Early return — all hooks must be above this line ─────────────────────
+  // ── Early return — all hooks above this line ──────────────────────────────
   if (!item || !form) return null;
 
   const dirty = isDirty(form, item);
-
   const patch = (key: keyof FormState) => (value: string | boolean) =>
     setForm((prev) => prev ? { ...prev, [key]: value } : prev);
 
@@ -297,7 +302,6 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
           Item Details
         </h2>
         <div className="flex items-center gap-2">
-          {/* Favourite toggle — saves instantly */}
           <button
             onClick={() => {
               const next = !form.isFavorite;
@@ -325,7 +329,6 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
               stroke={form.isFavorite ? "white" : "currentColor"}
             />
           </button>
-          {/* Close */}
           <button
             onClick={onClose}
             className="w-9 h-9 border rounded-full flex items-center justify-center
@@ -340,7 +343,6 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
       {/* ── Photo ── */}
       {item.imageObjectPath && (
         <div className="flex-shrink-0 border-b border-[#3A2210]/20">
-          {/* Image — uses localImageUrl optimistically once user has confirmed a version */}
           <div
             className="w-full h-52 relative"
             style={{
@@ -363,72 +365,91 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
               </div>
             )}
           </div>
-
-          {/* "Clean Up Photo" action bar */}
-          <div className="flex border-t border-[#3A2210]/15">
-            {bgFailed ? (
-              <button
-                onClick={handleRemoveBg}
-                className="w-full py-2.5 flex items-center justify-center gap-2
-                           text-[11px] font-bold uppercase tracking-wider text-red-600
-                           active:bg-muted transition-colors"
-              >
-                <Wand2 className="w-3.5 h-3.5" />
-                Failed — tap to retry
-              </button>
-            ) : (
-              <button
-                onClick={handleRemoveBg}
-                disabled={bgRemoving || !!localImageUrl}
-                className="w-full py-2.5 flex items-center justify-center gap-2
-                           text-[11px] font-bold uppercase tracking-wider text-black/60
-                           disabled:opacity-40 active:bg-muted transition-colors"
-              >
-                <Wand2 className="w-3.5 h-3.5" />
-                {bgRemoving ? "Removing background…" : localImageUrl ? "Already Cleaned ✨" : "Clean Up Photo ✨"}
-              </button>
-            )}
-          </div>
         </div>
       )}
 
+      {/* ── Action bar — always shown, exactly 2 buttons ── */}
+      <div className={`flex flex-shrink-0 ${item.imageObjectPath ? "" : "border-t border-[#3A2210]/15"}`}
+           style={{ borderBottom: "1px solid rgba(58,34,16,0.15)" }}>
+        {/* Left: Wearing Today */}
+        <button
+          onClick={handleWearingToday}
+          disabled={wornToday}
+          className="flex-1 py-2.5 flex items-center justify-center gap-1.5
+                     text-[11px] font-bold uppercase tracking-wider
+                     disabled:opacity-60 active:bg-[#F0E8D8] transition-colors"
+          style={{ color: wornToday ? "#6B9E6B" : "#6B4A2A" }}
+        >
+          <Footprints className="w-3.5 h-3.5" />
+          {wornToday ? "Worn Today ✓" : "Wearing Today"}
+        </button>
+
+        {/* Divider */}
+        <div className="w-px" style={{ background: "rgba(58,34,16,0.15)" }} />
+
+        {/* Right: context button */}
+        {showAddToLookbook ? (
+          <button
+            onClick={() => setShowLookbookPicker(true)}
+            className="flex-1 py-2.5 flex items-center justify-center gap-1.5
+                       text-[11px] font-bold uppercase tracking-wider text-[#6B4A2A]
+                       active:bg-[#F0E8D8] transition-colors"
+          >
+            <Bookmark className="w-3.5 h-3.5" />
+            Add to Kit
+          </button>
+        ) : item.imageObjectPath ? (
+          bgFailed ? (
+            <button
+              onClick={handleRemoveBg}
+              className="flex-1 py-2.5 flex items-center justify-center gap-1.5
+                         text-[11px] font-bold uppercase tracking-wider text-red-600
+                         active:bg-muted transition-colors"
+            >
+              <Wand2 className="w-3.5 h-3.5" />
+              Failed — retry
+            </button>
+          ) : (
+            <button
+              onClick={handleRemoveBg}
+              disabled={bgRemoving || !!localImageUrl}
+              className="flex-1 py-2.5 flex items-center justify-center gap-1.5
+                         text-[11px] font-bold uppercase tracking-wider text-[#6B4A2A]
+                         disabled:opacity-40 active:bg-[#F0E8D8] transition-colors"
+            >
+              <Wand2 className="w-3.5 h-3.5" />
+              {bgRemoving ? "Removing…" : localImageUrl ? "Cleaned ✨" : "Clean Up Photo ✨"}
+            </button>
+          )
+        ) : (
+          // No photo + not showing lookbook picker → empty right slot
+          <div className="flex-1" />
+        )}
+      </div>
+
       {/* ── Form ── */}
       <div className="flex-1 px-4 py-5 flex flex-col gap-4">
-
-        {/* Name */}
         <Field
           label="Item Name"
           value={form.name}
           onChange={patch("name") as (v: string) => void}
           placeholder="e.g. Mountain Fleece Jacket"
         />
-
-        {/* Brand + Color */}
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Brand"  value={form.brand} onChange={patch("brand") as (v: string) => void} placeholder="Nike, Patagonia…" />
-          <Field label="Color"  value={form.color} onChange={patch("color") as (v: string) => void} placeholder="Navy Blue" />
+          <Field label="Brand" value={form.brand} onChange={patch("brand") as (v: string) => void} placeholder="Nike, Patagonia…" />
+          <Field label="Color" value={form.color} onChange={patch("color") as (v: string) => void} placeholder="Navy Blue" />
         </div>
-
-        {/* Size */}
         <Field label="Size / Volume" value={form.size} onChange={patch("size") as (v: string) => void} placeholder="30ml, 50ml, Full Size…" />
-
-        {/* Season + Occasion */}
         <div className="grid grid-cols-2 gap-3">
           <SelectField label="Season"   value={form.season}   onChange={patch("season") as (v: string) => void}   options={SEASON_OPTIONS} />
           <SelectField label="Occasion" value={form.occasion} onChange={patch("occasion") as (v: string) => void} options={OCCASION_OPTIONS} />
         </div>
-
-        {/* Price + Date */}
         <div className="grid grid-cols-2 gap-3">
           <Field label="Purchase Price" value={form.purchasePrice} onChange={patch("purchasePrice") as (v: string) => void} placeholder="$49.99" />
-          <Field label="Date"  value={form.purchaseDate}  onChange={patch("purchaseDate") as (v: string) => void}  type="date" />
+          <Field label="Date"           value={form.purchaseDate}  onChange={patch("purchaseDate")  as (v: string) => void} type="date" />
         </div>
-
-        {/* Notes */}
         <div className="flex flex-col gap-1">
-          <label className="text-[10px] font-bold uppercase tracking-widest text-[#6B4A2A]/70">
-            Notes
-          </label>
+          <label className="text-[10px] font-bold uppercase tracking-widest text-[#6B4A2A]/70">Notes</label>
           <textarea
             value={form.notes}
             onChange={(e) => patch("notes")(e.target.value)}
@@ -439,8 +460,6 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
                        placeholder:font-normal placeholder:text-[#6B4A2A]/35"
           />
         </div>
-
-        {/* Category (editable) + Times Worn (read-only) */}
         <div className="grid grid-cols-2 gap-3">
           <SelectField
             label="Category"
@@ -455,13 +474,10 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
             </div>
           </div>
         </div>
-
       </div>
 
       {/* ── Footer actions ── */}
       <div className="sticky bottom-0 px-4 py-4 bg-[#FAF6EE] border-t border-[#3A2210]/20 flex-shrink-0 flex flex-col gap-2">
-
-        {/* Save (only when dirty) */}
         <AnimatePresence>
           {dirty && (
             <motion.button
@@ -478,7 +494,6 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
           )}
         </AnimatePresence>
 
-        {/* Delete */}
         {!showDeleteConfirm ? (
           <button
             onClick={() => setShowDeleteConfirm(true)}
@@ -515,7 +530,7 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
       </div>
     </motion.div>
 
-    {/* ── Full-screen compare overlay — slides over the detail sheet ── */}
+    {/* ── BG removal compare overlay ── */}
     <AnimatePresence>
       {showBgSheet && bgPreviewDUrl && (
         <BgRemovalSheet
@@ -523,6 +538,16 @@ export function ItemDetailsSheet({ item, onClose, onDeleted }: ItemDetailsSheetP
           cleanedUrl={bgPreviewDUrl}
           onSave={handleBgSave}
           onClose={() => setShowBgSheet(false)}
+        />
+      )}
+    </AnimatePresence>
+
+    {/* ── Add to Kit picker ── */}
+    <AnimatePresence>
+      {showLookbookPicker && (
+        <AddToLookbookSheet
+          item={item}
+          onClose={() => setShowLookbookPicker(false)}
         />
       )}
     </AnimatePresence>

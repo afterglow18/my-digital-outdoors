@@ -3,3 +3,4 @@
 - [Stripe integration](stripe-integration.md) — credential field name fix, checkout flow design, stripe-replit-sync warning, product seeding.
 - [Auth system](auth-system.md) — JWT/bcrypt auth, no-fallback-secret rule, ownership-before-delete pattern, single useAuth instance via context.
 - [RevenueCat seed client](revenuecat-seed-client.md) — RC connector proxy client pattern; baseUrl must be /v2; keys set as VITE_ shared env vars.
+- [Search & vision indexer](search-vision-indexer.md) — visionVersion scheme, indexer lifecycle, AddToLookbook + Wearing Today patterns, Codemagic plugin injection.

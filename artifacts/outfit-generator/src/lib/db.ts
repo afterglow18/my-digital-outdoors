@@ -1,21 +1,24 @@
 /**
  * Local IndexedDB database for My Digital Garage.
  *
- * Works in both the browser (Replit preview) and in the Capacitor iOS WebView —
- * IndexedDB is natively available in both environments and persists to the
- * app's sandboxed storage on-device.
- *
  * Schema v1:
  *   clothing_items  — wardrobe items with embedded image data URLs
  *   saved_outfits   — named outfit collections
  *   outfit_items    — junction: outfit ↔ clothing item
  *   settings        — key/value store for app preferences
+ *
+ * Schema v2 (non-destructive):
+ *   clothing_items gains optional vision fields:
+ *     visionLabels   — color/object labels from iOS Vision or web canvas
+ *     visionText     — text detected inside the photo
+ *     visionVersion  — 0=unanalyzed, 1=iOS Vision, 4=web canvas, 5=web/no-labels
+ *   Existing records are left untouched; undefined fields are treated as v0.
  */
 
 import { openDB, type IDBPDatabase } from "idb";
 
 export const DB_NAME    = "my-digital-garage";
-export const DB_VERSION = 1;
+export const DB_VERSION = 2;
 
 // ── Stored types (IndexedDB records) ─────────────────────────────────────────
 
@@ -36,6 +39,10 @@ export interface StoredClothingItem {
   notes?:         string | null;
   createdAt:      string;
   updatedAt:      string;
+  // ── v2 vision fields (optional — undefined on old records = version 0) ──
+  visionLabels?:  string[];      // color/object labels
+  visionText?:    string[];      // text extracted from photo
+  visionVersion?: number;        // 0=unanalyzed,1=iOS Vision,4=web canvas,5=web/no-labels
 }
 
 export interface StoredOutfit {
@@ -60,6 +67,10 @@ export interface StoredSetting {
 
 export interface ClothingItem extends Required<StoredClothingItem> {
   id: number;
+  // vision fields are always present on the public type; default to [] / 0
+  visionLabels:  string[];
+  visionText:    string[];
+  visionVersion: number;
 }
 
 export interface SavedOutfit {
@@ -78,39 +89,36 @@ export async function getDB(): Promise<IDBPDatabase> {
   if (_db) return _db;
 
   _db = await openDB(DB_NAME, DB_VERSION, {
-    upgrade(db) {
-      // clothing_items
-      if (!db.objectStoreNames.contains("clothing_items")) {
-        const store = db.createObjectStore("clothing_items", {
+    upgrade(db, oldVersion) {
+      // ── v1 stores (created fresh on first install) ──
+      if (oldVersion < 1) {
+        const items = db.createObjectStore("clothing_items", {
           keyPath:       "id",
           autoIncrement: true,
         });
-        store.createIndex("by_category", "category");
-        store.createIndex("by_favorite", "isFavorite");
-      }
+        items.createIndex("by_category", "category");
+        items.createIndex("by_favorite", "isFavorite");
 
-      // saved_outfits
-      if (!db.objectStoreNames.contains("saved_outfits")) {
         db.createObjectStore("saved_outfits", {
           keyPath:       "id",
           autoIncrement: true,
         });
-      }
 
-      // outfit_items
-      if (!db.objectStoreNames.contains("outfit_items")) {
-        const store = db.createObjectStore("outfit_items", {
+        const outfitItems = db.createObjectStore("outfit_items", {
           keyPath:       "id",
           autoIncrement: true,
         });
-        store.createIndex("by_outfit", "outfitId");
-        store.createIndex("by_item",   "clothingItemId");
-      }
+        outfitItems.createIndex("by_outfit", "outfitId");
+        outfitItems.createIndex("by_item",   "clothingItemId");
 
-      // settings
-      if (!db.objectStoreNames.contains("settings")) {
         db.createObjectStore("settings", { keyPath: "key" });
       }
+
+      // ── v2: no structural changes — vision fields are just optional
+      //    properties on existing clothing_items records.  Old records
+      //    will have undefined for these keys; the app treats undefined
+      //    as visionVersion=0 (unanalyzed).
+      // if (oldVersion < 2) { /* nothing to migrate */ }
     },
 
     blocked() {

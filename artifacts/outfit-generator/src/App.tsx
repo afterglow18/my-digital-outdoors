@@ -2,6 +2,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { Route, Switch, Redirect, Router as WouterRouter } from 'wouter';
 import { useState, useCallback, useEffect } from 'react';
 import { AppLayout } from './components/layout/AppLayout';
+import { startVisionIndexer } from '@/lib/visionIndexer';
 import WardrobePage from './pages/wardrobe';
 import GeneratePage from './pages/generate';
 import SavedPage from './pages/saved';
@@ -53,6 +54,13 @@ function AppShell() {
   const handleEnter = useCallback(() => {
     markEntered();
     setEntered(true);
+  }, []);
+
+  // Start vision indexer once on mount — non-blocking background job
+  useEffect(() => {
+    startVisionIndexer().catch((err) =>
+      console.warn("[App] Vision indexer start failed:", err)
+    );
   }, []);
 
   return (
