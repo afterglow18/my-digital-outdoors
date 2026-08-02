@@ -8,26 +8,9 @@ import SavedPage from './pages/saved';
 import FavoritesPage from './pages/favorites';
 import AccountPage from './pages/account';
 import WelcomePage from './pages/welcome';
-import { SubscriptionProvider, initializeRevenueCat } from '@/lib/revenuecat';
+import { SubscriptionProvider } from '@/lib/revenuecat';
 import { queryClient } from '@/lib/queryClient';
 import { BiometricLockProvider } from '@/context/BiometricLockContext';
-
-// ── Initialise RevenueCat once at startup ────────────────────────────────────
-// After RC configures itself, invalidate offerings so the query re-fetches
-// with a live Purchases instance (avoids the race where the query runs before
-// RC is configured and gets a "not initialized" error).
-try {
-  initializeRevenueCat()
-    .then(() => {
-      queryClient.invalidateQueries({ queryKey: ["revenuecat"] });
-      console.log("[RevenueCat] Initialized — offerings query invalidated");
-    })
-    .catch((err) =>
-      console.warn("[RevenueCat] Init error (non-fatal):", err)
-    );
-} catch (err) {
-  console.warn("[RevenueCat] Init error (non-fatal):", err);
-}
 
 // ── First-launch welcome ──────────────────────────────────────────────────────
 const ENTERED_KEY = "garage-entered";
