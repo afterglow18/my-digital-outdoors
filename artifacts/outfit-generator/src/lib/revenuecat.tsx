@@ -54,26 +54,16 @@ export async function initializeRevenueCat(): Promise<void> {
     .then(() => console.log("[RC] setLogLevel ✓"))
     .catch((e) => console.warn("[RC] setLogLevel failed:", e));
 
-  // Await configure() with a 10 s timeout.
-  // With the static import fix the bridge response arrives quickly; the timeout
-  // is just a safety net so we never block indefinitely.
-  console.log("[RC] calling configure()…");
-  try {
-    await Promise.race([
-      Purchases.configure({ apiKey }),
-      new Promise<never>((_, rej) =>
-        setTimeout(() => rej(new Error("[RC] configure() timed out after 10 s")), 10000)
-      ),
-    ]);
-    console.log("[RC] configure() ✓ — SDK ready");
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    if (msg.includes("timed out")) {
-      console.warn("[RC]", msg, "— continuing anyway");
-    } else {
-      console.error("[RC] configure() error:", e);
-    }
-  }
+  // Fire-and-forget — do NOT await.
+  // The Swift→JS bridge response may never arrive on Capacitor + SPM.
+  // The native SDK initialises synchronously on message receipt regardless.
+  console.log("[RC] calling configure() fire-and-forget…");
+  void Purchases.configure({ apiKey })
+    .then(() => console.log("[RC] configure() response ✓"))
+    .catch((e) => console.error("[RC] configure() error:", e));
+
+  await Promise.resolve(); // one microtask so the message is dispatched
+  console.log("[RC] configure() dispatched — SDK initialising natively");
 }
 
 // ── Query key ─────────────────────────────────────────────────────────────────
