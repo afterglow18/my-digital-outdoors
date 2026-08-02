@@ -84,16 +84,18 @@ export async function initializeRevenueCat(): Promise<void> {
     .then(() => console.log("[RC] configure() response ✓"))
     .catch((e) => console.error("[RC] configure() error:", e));
 
-  await Promise.resolve(); // one microtask so the message is dispatched
-  console.log("[RC] configure() dispatched — SDK initialising natively");
+  // One microtask so the configure() message is dispatched to the native layer
+  // before we unblock the offerings query.
+  await Promise.resolve();
+  console.log("[RC] configure() dispatched — resolving rcReadyPromise now");
 
-  // Give the native SDK 3 s to finish initialising before the first
-  // getOfferings() attempt.  Without this delay, getOfferings() races
-  // configure() and times out every time on cold launch.
-  setTimeout(() => {
-    console.log("[RC] rcReadyPromise resolved — SDK should be ready");
-    _rcReadyResolve?.();
-  }, 3000);
+  // Resolve immediately — do NOT use setTimeout here.
+  // A delayed resolve means the queryFn hangs at `await rcReadyPromise` with
+  // failureCount:0 and no visible error. The retry logic already handles
+  // the case where RC isn't fully initialised yet: getOfferings() will throw
+  // and be retried up to 30 times with back-off.
+  _rcReadyResolve?.();
+  console.log("[RC] rcReadyPromise resolved — offerings query unblocked");
 }
 
 // ── Query key ─────────────────────────────────────────────────────────────────
