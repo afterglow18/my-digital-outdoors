@@ -16,6 +16,14 @@ import { X, Check } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSubscription } from "@/lib/revenuecat";
 
+// RevenueCat throws a JS object (not an Error) with a `userCancelled` boolean
+// when the user dismisses the native purchase sheet.
+function isUserCancelled(err: unknown): boolean {
+  if (err && typeof err === "object" && "userCancelled" in err) return true;
+  const msg = err instanceof Error ? err.message.toLowerCase() : "";
+  return msg.includes("cancel") || msg.includes("dismiss");
+}
+
 export type UpgradeReason = "items" | "outfits" | "mannequin";
 type TierId = "monthly" | "yearly" | "lifetime";
 
@@ -127,6 +135,7 @@ export function UpgradeSheet({ reason, onClose }: Props) {
   const {
     products, productsError, productsAttempts,
     purchase, restore, isRestoring, isLoading,
+    isSubscribed,
   } = useSubscription();
   const qc = useQueryClient();
 
@@ -134,6 +143,17 @@ export function UpgradeSheet({ reason, onClose }: Props) {
   const [status,      setStatus]      = useState<"idle" | "pending" | "error">("idle");
   const [pkgTimedOut, setPkgTimedOut] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Auto-close when premium access is confirmed (handles restore + any post-purchase delay).
+  // Skip on first render so the sheet doesn't flash closed if isSubscribed was already true.
+  const mountedRef = useRef(false);
+  useEffect(() => {
+    if (!mountedRef.current) { mountedRef.current = true; return; }
+    if (isSubscribed) {
+      console.log("[Paywall] isSubscribed became true — closing paywall");
+      onClose();
+    }
+  }, [isSubscribed, onClose]);
 
   // True once StoreKit has returned at least the selected product.
   const selectedProduct = findProduct(products, TIER_CONFIG[selected].productId);
@@ -214,8 +234,7 @@ export function UpgradeSheet({ reason, onClose }: Props) {
       await purchase(product);
       onClose();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message.toLowerCase() : "";
-      if (msg.includes("cancel") || msg.includes("dismiss")) {
+      if (isUserCancelled(err)) {
         setStatus("idle");
       } else {
         console.error("[Paywall] Purchase error:", err);

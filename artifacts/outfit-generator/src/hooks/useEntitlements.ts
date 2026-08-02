@@ -6,8 +6,8 @@
  * of localStorage + Stripe Checkout.
  *
  * Tier mapping:
- *   no active entitlement              → "free"  (up to 20 items, 5 outfits)
- *   "My Digital Outdoors Pro" entitlement → "unlock" (unlimited items + outfits)
+ *   no active entitlement                 → "free"    (up to 20 items, 5 outfits)
+ *   "My Digital Outdoors Pro" entitlement → "premium" (unlimited items + outfits + mannequin)
  *
  * PurchaseResult:
  *   "success"     — subscription activated
@@ -29,8 +29,9 @@ export function useEntitlements() {
   const { isSubscribed, products, purchase: rcPurchase, isPurchasing } =
     useSubscription();
 
-  // Both "unlock" and "premium" products now map to the RC "unlock" tier.
-  const tier: Tier = isSubscribed ? "unlock" : "free";
+  // RC "My Digital Outdoors Pro" entitlement maps to the full "premium" tier
+  // (unlimited items + outfits + mannequin access).
+  const tier: Tier = isSubscribed ? "premium" : "free";
   const caps: TierCapabilities = TIER_CAPS[tier];
 
   const canAddItem = useCallback(
