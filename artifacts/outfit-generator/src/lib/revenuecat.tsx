@@ -47,22 +47,33 @@ export async function initializeRevenueCat(): Promise<void> {
   if (!Capacitor.isNativePlatform()) return;
 
   const apiKey = getApiKey();
+  console.log("[RC] initializeRevenueCat — apiKey prefix:", apiKey.slice(0, 12));
 
-  // Fire-and-forget — do NOT await either call.
-  // On Capacitor 8 + SPM the Swift→JS bridge response may never arrive,
-  // so awaiting blocks forever. The native SDK initialises synchronously
-  // on message receipt regardless of whether JS awaits the response.
+  // setLogLevel is fire-and-forget (non-critical)
   void Purchases.setLogLevel({ level: LOG_LEVEL.DEBUG })
     .then(() => console.log("[RC] setLogLevel ✓"))
     .catch((e) => console.warn("[RC] setLogLevel failed:", e));
 
-  void Purchases.configure({ apiKey })
-    .then(() => console.log("[RC] configure() response ✓"))
-    .catch((e) => console.error("[RC] configure() error:", e));
-
-  // One microtask so the calls are dispatched before we return.
-  await Promise.resolve();
-  console.log("[RevenueCat] configure() dispatched");
+  // Await configure() with a 10 s timeout.
+  // With the static import fix the bridge response arrives quickly; the timeout
+  // is just a safety net so we never block indefinitely.
+  console.log("[RC] calling configure()…");
+  try {
+    await Promise.race([
+      Purchases.configure({ apiKey }),
+      new Promise<never>((_, rej) =>
+        setTimeout(() => rej(new Error("[RC] configure() timed out after 10 s")), 10000)
+      ),
+    ]);
+    console.log("[RC] configure() ✓ — SDK ready");
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg.includes("timed out")) {
+      console.warn("[RC]", msg, "— continuing anyway");
+    } else {
+      console.error("[RC] configure() error:", e);
+    }
+  }
 }
 
 // ── Query key ─────────────────────────────────────────────────────────────────
@@ -91,16 +102,25 @@ function useSubscriptionContext() {
     queryKey: ["revenuecat", "offerings"],
     queryFn: async () => {
       if (!Capacitor.isNativePlatform()) return null;
+      console.log("[RC] getOfferings() attempt…");
       // 8 s per-attempt timeout — short enough that retries happen quickly
       // if RC hasn't finished initialising yet.
-      const result = await Promise.race([
-        Purchases.getOfferings(),
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error("RC getOfferings timeout")), 8000)
-        ),
-      ]);
+      let result: unknown;
+      try {
+        result = await Promise.race([
+          Purchases.getOfferings(),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error("RC getOfferings timeout")), 8000)
+          ),
+        ]);
+      } catch (err) {
+        console.warn("[RC] getOfferings() failed:", err);
+        throw err;
+      }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const data = (result as any).offerings ?? result ?? null;
+      console.log("[RC] getOfferings() result — current:", data?.current?.identifier ?? "null",
+        "packages:", data?.current?.availablePackages?.length ?? 0);
       // Treat empty/null as an error so React Query retries rather than
       // caching null as a successful "no offerings" result.
       if (!data?.current) throw new Error("RC offerings not ready");
