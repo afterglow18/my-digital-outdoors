@@ -91,20 +91,29 @@ function useSubscriptionContext() {
     queryKey: ["revenuecat", "offerings"],
     queryFn: async () => {
       if (!Capacitor.isNativePlatform()) return null;
-      // Race against a 12 s timeout so the paywall never hangs forever
-      // if RC hasn't finished initialising (race condition on first mount).
+      // 8 s per-attempt timeout — short enough that retries happen quickly
+      // if RC hasn't finished initialising yet.
       const result = await Promise.race([
         Purchases.getOfferings(),
         new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error("RC getOfferings timeout")), 12000)
+          setTimeout(() => reject(new Error("RC getOfferings timeout")), 8000)
         ),
       ]);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return (result as any).offerings ?? result ?? null;
+      const data = (result as any).offerings ?? result ?? null;
+      // Treat empty/null as an error so React Query retries rather than
+      // caching null as a successful "no offerings" result.
+      if (!data?.current) throw new Error("RC offerings not ready");
+      return data;
     },
     staleTime: 300 * 1000,
-    retry: 3,
-    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 4000),
+    // Keep retrying — RC configure() can take 10-30 s on first cold launch.
+    retry: 30,
+    retryDelay: (attempt) => Math.min(2000 * attempt, 6000),
+    // Also poll every 5 s while we have no data (covers the case where
+    // retries are exhausted but the SDK initialises late).
+    refetchInterval: (query) =>
+      Capacitor.isNativePlatform() && !query.state.data ? 5000 : false,
   });
 
   // ── Foreground + server-push listeners ─────────────────────────────────────
