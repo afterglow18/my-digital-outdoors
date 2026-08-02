@@ -126,19 +126,26 @@ function useSubscriptionContext() {
       // Without this, getOfferings() races SDK init and times out every time.
       await rcReadyPromise;
       console.log("[RC] getOfferings() attempt…");
-      // 8 s per-attempt timeout — short enough that retries happen quickly
-      // if RC hasn't finished initialising yet.
+      // 25 s timeout — iOS 26 + StoreKit cold-start can take 15-20 s on first
+      // launch. The previous 8 s limit was causing our own timeout to fire
+      // before StoreKit even responded, hiding the real error from RC.
       let result: unknown;
       try {
         result = await Promise.race([
           Purchases.getOfferings(),
           new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error("RC getOfferings timeout")), 8000)
+            setTimeout(() => reject(new Error("RC getOfferings timeout (25s)")), 25000)
           ),
         ]);
       } catch (err) {
-        console.warn("[RC] getOfferings() failed:", err);
-        throw err;
+        // Stringify the full error so the real StoreKit / RC message is visible
+        // in Xcode console AND in the on-screen diagnostic.
+        const msg = err instanceof Error
+          ? `${err.message} | ${JSON.stringify(err)}`
+          : JSON.stringify(err);
+        console.warn("[RC] getOfferings() failed:", msg);
+        // Re-throw a plain Error so .message carries the detail to the UI.
+        throw new Error(msg);
       }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const data = (result as any).offerings ?? result ?? null;

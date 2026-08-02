@@ -13,6 +13,7 @@ import React, { useState, useCallback, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { X, Check } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { Capacitor } from "@capacitor/core";
 import { useSubscription } from "@/lib/revenuecat";
 
 export type UpgradeReason = "items" | "outfits" | "mannequin";
@@ -336,11 +337,13 @@ export function UpgradeSheet({ reason, onClose }: Props) {
           {ctaLabel}
         </button>
 
-        {/* Diagnostic: show RC error text on-screen when packages fail to load.
-            Visible in TestFlight without needing Xcode attached. */}
-        {pkgTimedOut && offeringsError && (
-          <p className="text-[10px] text-center text-red-600/70 leading-tight px-2 -mt-1">
-            RC error ({offeringsAttempts} attempts): {offeringsError.message}
+        {/* Diagnostic panel — visible in TestFlight without Xcode attached.
+            Shows plugin status + real RC/StoreKit error message. */}
+        {pkgTimedOut && (
+          <p className="text-[10px] text-center text-red-600/70 leading-tight px-2 -mt-1 break-all">
+            plugin:{Capacitor.isPluginAvailable("Purchases") ? "✓" : "✗"}
+            {" · "}attempts:{offeringsAttempts}
+            {offeringsError ? ` · ${offeringsError.message}` : " · no error yet"}
           </p>
         )}
 
