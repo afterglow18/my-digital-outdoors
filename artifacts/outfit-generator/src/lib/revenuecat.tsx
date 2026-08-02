@@ -249,7 +249,9 @@ function useSubscriptionContext() {
   return {
     customerInfo:        customerInfoQuery.data ?? null,
     offerings:           offeringsQuery.data ?? null,
-    offeringsError:      offeringsQuery.error as Error | null,
+    // failureReason = error from the most recent failed attempt, even while
+    // retrying. offeringsQuery.error is null until all retries are exhausted.
+    offeringsError:      (offeringsQuery.failureReason ?? offeringsQuery.error) as Error | null,
     offeringsAttempts:   offeringsQuery.failureCount,
     isSubscribed,
     isLoading:           customerInfoQuery.isLoading,
