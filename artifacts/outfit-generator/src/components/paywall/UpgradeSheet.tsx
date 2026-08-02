@@ -12,6 +12,7 @@
 import React, { useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { X, Check } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useSubscription } from "@/lib/revenuecat";
 
 export type UpgradeReason = "items" | "outfits" | "mannequin";
@@ -123,6 +124,7 @@ function TierCard({
 
 export function UpgradeSheet({ reason, onClose }: Props) {
   const { offerings, purchase, restore, isRestoring, isLoading } = useSubscription();
+  const qc = useQueryClient();
   const [selected, setSelected] = useState<TierId>("lifetime");
   const [status,   setStatus]   = useState<"idle" | "pending" | "error">("idle");
 
@@ -146,9 +148,24 @@ export function UpgradeSheet({ reason, onClose }: Props) {
     if (status === "error") { setStatus("idle"); return; }
     if (isLoading) return;
     setStatus("pending");
-    const pkg = getRcPackage(offerings, TIER_DEFAULTS[selected].pkgId);
+
+    // If offerings haven't arrived yet, kick off a refetch and wait up to 8 s
+    // polling the query cache every 500 ms. This is the common case on first open
+    // before RC's getOfferings() response has come back from the network.
+    let pkg = getRcPackage(offerings, TIER_DEFAULTS[selected].pkgId);
     if (!pkg) {
-      console.error("[Paywall] No RC package found — offerings:", offerings, "tier:", selected);
+      qc.invalidateQueries({ queryKey: ["revenuecat", "offerings"] });
+      let waited = 0;
+      while (!pkg && waited < 8000) {
+        await new Promise<void>(r => setTimeout(r, 500));
+        waited += 500;
+        const fresh = qc.getQueryData(["revenuecat", "offerings"]);
+        pkg = getRcPackage(fresh, TIER_DEFAULTS[selected].pkgId);
+      }
+    }
+
+    if (!pkg) {
+      console.error("[Paywall] No RC package found after waiting — offerings:", offerings, "tier:", selected);
       setStatus("error");
       return;
     }
@@ -164,7 +181,7 @@ export function UpgradeSheet({ reason, onClose }: Props) {
         setStatus("error");
       }
     }
-  }, [status, isLoading, offerings, selected, purchase, onClose]);
+  }, [status, isLoading, offerings, selected, purchase, onClose, qc]);
 
   // CSS plaid pattern — burnt orange base with dark cross-bands and fine thread lines
   const plaidBg = [
