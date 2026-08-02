@@ -142,8 +142,13 @@ export function UpgradeSheet({ reason, onClose }: Props) {
   // can't tap before a package exists to purchase.
   const selectedPkgReady = !!getRcPackage(offerings, TIER_DEFAULTS[selected].pkgId);
 
-  // After 15 s, if packages still haven't loaded, flip to "Tap to Retry" so
-  // the user isn't permanently stuck on "Loading Plans…".
+  // After 30 s, if packages still haven't loaded AND at least one attempt has
+  // failed, flip to "Tap to Retry". We wait for a failure (attempts > 0) so we
+  // don't interrupt a slow-but-in-progress first attempt (which can take 20-25 s
+  // on iOS 26 due to StoreKit cold-start). If the first attempt is still running
+  // we keep showing "Loading Plans…" even after the timer fires.
+  const showRetry = pkgTimedOut && (offeringsAttempts > 0 || !!offeringsError);
+
   useEffect(() => {
     if (selectedPkgReady) {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -153,8 +158,8 @@ export function UpgradeSheet({ reason, onClose }: Props) {
     setPkgTimedOut(false);
     timeoutRef.current = setTimeout(() => {
       setPkgTimedOut(true);
-      console.warn("[Paywall] 15 s elapsed — offerings still not ready, showing retry");
-    }, 15_000);
+      console.warn("[Paywall] 30 s elapsed — offerings still not ready");
+    }, 30_000);
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
@@ -163,7 +168,7 @@ export function UpgradeSheet({ reason, onClose }: Props) {
   const ctaLabel =
     status === "pending"                        ? "Opening…"
     : status === "error"                        ? "Tap to Try Again"
-    : pkgTimedOut                               ? "Tap to Retry"
+    : showRetry                                 ? "Tap to Retry"
     : isLoading || !selectedPkgReady            ? "Loading Plans…"
     : selected === "lifetime"                   ? `UNLOCK FOREVER – ${prices.lifetime} ›`
     : selected === "yearly"                     ? `SUBSCRIBE – ${prices.yearly}/YR ›`
@@ -173,8 +178,8 @@ export function UpgradeSheet({ reason, onClose }: Props) {
     if (status === "pending") return;
     // If showing a previous error, reset and let user retry
     if (status === "error") { setStatus("idle"); return; }
-    // If timed out, trigger a fresh offerings fetch and reset the timer
-    if (pkgTimedOut) {
+    // If showing retry, trigger a fresh offerings fetch and reset the timer
+    if (showRetry) {
       setPkgTimedOut(false);
       qc.invalidateQueries({ queryKey: ["revenuecat", "offerings"] });
       return;
@@ -325,7 +330,7 @@ export function UpgradeSheet({ reason, onClose }: Props) {
       >
         <button
           onClick={handlePurchase}
-          disabled={status === "pending" || (!pkgTimedOut && (isLoading || !selectedPkgReady) && status !== "error")}
+          disabled={status === "pending" || (!showRetry && (isLoading || !selectedPkgReady) && status !== "error")}
           className="w-full py-3.5 rounded-2xl font-display font-bold text-lg uppercase
                      tracking-tight border-[3px] border-black text-black
                      active:translate-x-0.5 active:translate-y-0.5 transition-all
@@ -339,11 +344,13 @@ export function UpgradeSheet({ reason, onClose }: Props) {
 
         {/* Diagnostic panel — visible in TestFlight without Xcode attached.
             Shows plugin status + real RC/StoreKit error message. */}
-        {pkgTimedOut && (
+        {/* Diagnostic — always visible while packages haven't loaded so we can
+            read the status from a TestFlight screenshot without Xcode. */}
+        {!selectedPkgReady && (pkgTimedOut || offeringsAttempts > 0 || !!offeringsError) && (
           <p className="text-[10px] text-center text-red-600/70 leading-tight px-2 -mt-1 break-all">
             plugin:{Capacitor.isPluginAvailable("Purchases") ? "✓" : "✗"}
             {" · "}attempts:{offeringsAttempts}
-            {offeringsError ? ` · ${offeringsError.message}` : " · no error yet"}
+            {offeringsError ? ` · ${offeringsError.message}` : " · loading…"}
           </p>
         )}
 
