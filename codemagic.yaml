@@ -71,6 +71,30 @@ workflows:
           npx cap add ios
           npx cap sync ios
 
+      - name: Configure iPhone-only target
+        script: |
+          # Capacitor regenerates the iOS project above, so apply this after
+          # sync on every build. Device family 1 is iPhone; 2 is iPad.
+          gem list xcodeproj -i || gem install xcodeproj --no-document
+          ruby - <<'RUBY'
+          require 'xcodeproj'
+          proj_path = 'artifacts/outfit-generator/ios/App/App.xcodeproj'
+          proj = Xcodeproj::Project.open(proj_path)
+
+          proj.targets.each do |target|
+            target.build_configurations.each do |config|
+              config.build_settings['TARGETED_DEVICE_FAMILY'] = '1'
+            end
+          end
+
+          proj.save
+          RUBY
+
+          # Also declare the device family in the generated app metadata.
+          /usr/libexec/PlistBuddy -c "Delete :UIDeviceFamily" artifacts/outfit-generator/ios/App/App/Info.plist 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :UIDeviceFamily array" artifacts/outfit-generator/ios/App/App/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :UIDeviceFamily:0 integer 1" artifacts/outfit-generator/ios/App/App/Info.plist
+
       - name: Inject VisionAnalyzer native plugin
         script: |
           PLUGIN_SRC="artifacts/outfit-generator/ios-plugins/VisionAnalyzer"
